@@ -1,4 +1,8 @@
-import { randomMechanics, state, Item, numberPickerMechanics, mechanicsEngine } from "..";
+import { mechanicsEngine } from "../controller/mechanics/mechanicsEngine";
+import { numberPickerMechanics } from "../controller/mechanics/numberPickerMechanics";
+import { randomMechanics } from "../controller/mechanics/randomMechanics";
+import { state } from "../state";
+import { Item } from "./item";
 
 /**
  * Evaluation of mechanics expressions
@@ -9,7 +13,7 @@ export class ExpressionEvaluator {
      * Expression to find texts to replace
      * Matches anything between "[" and "]", both included
      */
-    private static replacementsRegex: RegExp = /\[[^\]]*\]/g;
+    private static replacementsRegex = /\[[^\]]*\]/g;
 
     /**
      * Dictionary of functions to do the replacements.
@@ -186,7 +190,7 @@ export class ExpressionEvaluator {
             return [];
         }
 
-        const keywords: string[] = [];
+        const keywords = new Array<string>();
         for ( const keyword of repeatedKeywords ) {
             if ( !keywords.includes(keyword) ) {
                 keywords.push( keyword );
@@ -202,7 +206,7 @@ export class ExpressionEvaluator {
      */
     private static doReplacements( expression: string ): string {
         for ( const keyword of ExpressionEvaluator.getKeywords(expression) ) {
-            let replacement;
+            let replacement: string;
             const functionReplacer = ExpressionEvaluator.replacementFunctions[ keyword ];
             if ( !functionReplacer ) {
                 mechanicsEngine.debugWarning( "Unknown keyword on expression: " + keyword );
@@ -220,7 +224,7 @@ export class ExpressionEvaluator {
      * @param expression Expression to evaluate
      * @returns The expression value
      */
-    private static eval( expression: string ): any {
+    private static eval( expression: string ): unknown {
         try {
             expression = ExpressionEvaluator.doReplacements( expression );
             // tslint:disable-next-line: no-eval
@@ -250,7 +254,7 @@ export class ExpressionEvaluator {
      * @returns The expression value
      */
     public static evalBoolean( expression: string ): boolean {
-        return ExpressionEvaluator.eval( expression );
+        return <boolean>ExpressionEvaluator.eval( expression );
     }
 
     /**
@@ -259,7 +263,7 @@ export class ExpressionEvaluator {
      * @returns The expression value
      */
     public static evalInteger( expression: string ): number {
-        return Math.floor( ExpressionEvaluator.eval( expression ) );
+        return Math.floor( <number>ExpressionEvaluator.eval( expression ) );
     }
 
 }

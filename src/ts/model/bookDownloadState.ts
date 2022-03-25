@@ -1,4 +1,4 @@
-import { projectAon } from "..";
+import { projectAon } from "./projectAon";
 
 /**
  * Class to handle the download state of a Project Aon book.

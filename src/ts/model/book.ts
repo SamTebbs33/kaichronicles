@@ -1,4 +1,10 @@
-import { state, KaiDiscipline, projectAon, Section, MgnDiscipline, GndDiscipline, BookSeriesId, SectionRenderer, BookSeries, mechanicsEngine } from "..";
+import { mechanicsEngine } from "../controller/mechanics/mechanicsEngine";
+import { state } from "../state";
+import { BookSeriesId, BookSeries } from "./bookSeries";
+import { KaiDiscipline, MgnDiscipline, GndDiscipline } from "./disciplinesDefinitions";
+import { projectAon } from "./projectAon";
+import { Section } from "./section";
+import { SectionRenderer } from "./sectionRenderer";
 
 /** Book disciplines table */
 export interface DisciplinesTable {
@@ -58,7 +64,7 @@ export class Book {
     public bookNumber: number;
 
     /** The book XML document */
-    public bookXml: any;
+    public bookXml: XMLDocument;
 
     /**
      * Array of 100 positions with the random table numbers as they appear on the book
@@ -102,7 +108,7 @@ export class Book {
         // Code taken from Lone Wolf Adventures, by Liquid State Limited.
 
         // remove general directives
-        xmlText = xmlText.replace(/(?:\%general|\%xhtml|\&inclusion)[a-z\.]*;/g, "");
+        xmlText = xmlText.replace(/(?:%general|%xhtml|&inclusion)[a-z.]*;/g, "");
 
         // Link to readers handbook (Book 13)
         xmlText = xmlText.replaceAll("&link.rh;", "https://www.projectaon.org/en/ReadersHandbook/Home");
@@ -159,18 +165,16 @@ export class Book {
      * Start the download and fix a game book
      * @return Promise with the download / fix task
      */
-    public downloadBookXml(): JQueryXHR {
+    public async downloadBookXml() {
 
         const bookXmlUrl = this.getBookXmlURL();
         // console.log( 'Downloading book XML URL: ' + bookXmlUrl);
 
-        return $.ajax({
+        const xml = <string> await $.ajax({
             url: bookXmlUrl,
             dataType: "text"
         })
-        .done((xml) => {
-            this.setXml(xml);
-        });
+        this.setXml(xml);
     }
 
     public setXml(xml: string) {
@@ -189,12 +193,12 @@ export class Book {
      * Added on v 1.8
      * @returns The download promises. The promises text is the author XML bio, fixed
      */
-    public downloadAuthorsBio(): Array<JQueryXHR> {
+    public async downloadAuthorsBio(): Promise<Array<string>> {
 
         try {
-            const promises: Array<JQueryXHR> = [];
+            const promises = new Array<string>();
             for ( const authorId of projectAon.supportedBooks[this.bookNumber - 1].biographies ) {
-                promises.push( this.downloadAuthorInfo( authorId ) );
+                promises.push( await this.downloadAuthorInfo(authorId) );
             }
 
             return promises;
@@ -209,9 +213,9 @@ export class Book {
      * @param authorId The author id (ex. "jdbiolw")
      * @returns The download promise. The promise text is the author XML bio, fixed
      */
-    private downloadAuthorInfo( authorId: string ): JQueryXHR {
-        const authorFileUrl = Book.getBaseUrl() + this.bookNumber + "/" + authorId + ".inc";
-        return $.ajax({
+    private async downloadAuthorInfo( authorId: string ): Promise<string> {
+        const authorFileUrl = Book.getBaseUrl() + this.bookNumber.toString() + "/" + authorId + ".inc";
+        return <string> await $.ajax({
             url: authorFileUrl,
             dataType: "text"
         });
@@ -239,7 +243,7 @@ export class Book {
      * Returns the book XML source URL
      */
     public getBookXmlURL() {
-        return Book.getBaseUrl() + this.bookNumber + "/" + this.getProjectAonBookCode() +
+        return Book.getBaseUrl() + this.bookNumber.toString() + "/" + this.getProjectAonBookCode() +
             ".xml";
     }
 
@@ -251,7 +255,7 @@ export class Book {
      * @returns The image URL, relative to application root
      */
     public getIllustrationURL(fileName: string): string {
-        const illUrl = Book.getBaseUrl() + this.bookNumber + "/ill/" +
+        const illUrl = Book.getBaseUrl() + this.bookNumber.toString() + "/ill/" +
             fileName;
         // console.log('Image URL: ' + illUrl);
         return illUrl;
@@ -291,7 +295,7 @@ export class Book {
             // eslint-disable-next-line @typescript-eslint/no-this-alias
             const self = this;
             $(this.bookXml).find('section[id=discplnz] > data > section[id!="mksumary"]')
-            .each( function(disciplineSection) {
+            .each( function() {
 
                 const $node = $(this);
 
@@ -308,7 +312,7 @@ export class Book {
                     description = $node.find("p").first().text();
                 }
 
-                let imageHtml: string = "";
+                let imageHtml = "";
                 if (bookSeries.id >= BookSeriesId.GrandMaster) {
                     const $disciplineIll = $node.find("> data > illustration").first();
                     imageHtml = SectionRenderer.renderIllustration(disciplinesSection, $disciplineIll);
@@ -376,7 +380,7 @@ export class Book {
 
         // Get the title
         let title = $(this.bookXml)
-            .find('section[id="levels"] > data > ol > li:eq(' + (nDisciplines - 1) + ")")
+            .find('section[id="levels"] > data > ol > li:eq(' + (nDisciplines - 1).toString() + ")")
             .text();
         if ( !title ) {
             title = "Unknown";
@@ -403,8 +407,8 @@ export class Book {
      * @return Section ids that can go to the given section
      */
     public getOriginSections(sectionId: string): string[] {
-        const sourceSectionIds = [];
-        const sourceSections = $(this.bookXml)
+        const sourceSectionIds = new Array<string>();
+        $(this.bookXml)
             .find('section[class="numbered"]' )
             .has( 'data > choice[idref="' + sectionId + '"]')
             .each( (index, section) => {
@@ -417,14 +421,14 @@ export class Book {
      * Get the book cover image URL
      */
     public getCoverURL(): string {
-        return Book.getBaseUrl() + this.bookNumber + "/cover.jpg";
+        return Book.getBaseUrl() + this.bookNumber.toString() + "/cover.jpg";
     }
 
     /**
      * Return an array of 2 positions with the combat tables images
      */
     public getCombatTablesImagesUrls() {
-        const images = [];
+        const images = new Array<string>();
         images.push( this.getIllustrationURL( "crtpos.png" ) );
         images.push( this.getIllustrationURL( "crtneg.png" ) );
         return images;
@@ -438,7 +442,7 @@ export class Book {
         const $randomCells = $(this.bookXml)
             .find("section[id=random] > data > illustration > instance[class=text]")
             .find("td");
-        const numbers = [];
+        const numbers = new Array<number>();
         for (const cell of $randomCells.toArray()) {
             numbers.push( parseInt( $(cell).text(), 10 ) );
         }
@@ -450,7 +454,7 @@ export class Book {
     }
 
     public getSectionsIds(): string[] {
-        const sectionIds: string[] = [];
+        const sectionIds = new Array<string>();
         let sectionId = Book.INITIAL_SECTION;
         while (sectionId != null) {
             sectionIds.push(sectionId);

@@ -1,12 +1,13 @@
-import { BookSeriesId, KaiDiscipline, MgnDiscipline, GndDiscipline } from "..";
+import { BookSeriesId } from "./bookSeries";
+import { GndDiscipline, KaiDiscipline, MgnDiscipline } from "./disciplinesDefinitions";
 
 /**
  * Disciplines helpers
  */
 export class Disciplines {
 
-    private static getDisciplinesIds(disciplinesEnum: any): string[] {
-        const result = [];
+    private static getDisciplinesIds(disciplinesEnum: unknown): string[] {
+        const result = new Array<string>();
         for (const disciplineKey of Object.keys(disciplinesEnum)) {
             result.push(disciplinesEnum[disciplineKey]);
         }

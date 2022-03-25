@@ -1,6 +1,10 @@
-import { Book, Mechanics, BookSectionStates, ActionChart, projectAon, mechanicsEngine } from ".";
-
 // Variabe "state" is declared at bottom of this file
+
+import { ActionChart } from "./model/actionChart";
+import { Book } from "./model/book";
+import { BookSectionStates } from "./model/bookSectionStates";
+import { Mechanics } from "./model/mechanics";
+import { projectAon } from "./model/projectAon";
 
 interface CurrentState {
     actionChart: ActionChart,
@@ -58,9 +62,8 @@ export class State {
      * Setup the default color or persist from local storage
      */
     public setupDefaultColorTheme() {
-
         try {
-            this.color = Color[localStorage.getItem("color")];
+            this.color = <Color>Color[localStorage.getItem("color")];
             if (!this.color) {
                 this.color = Color.Light;
             }
@@ -165,7 +168,7 @@ export class State {
             if (!json) {
                 throw new Error("No state to restore found");
             }
-            const stateKeys = JSON.parse(json);
+            const stateKeys = <CurrentState>JSON.parse(json);
             if (!stateKeys) {
                 throw new Error("Wrong JSON format");
             }
@@ -179,7 +182,7 @@ export class State {
     /**
      * Restore the state from an object
      */
-    private restoreStateFromObject(stateKeys: any) {
+    private restoreStateFromObject(stateKeys: CurrentState) {
         this.book = new Book(stateKeys.bookNumber);
         this.mechanics = new Mechanics(this.book);
         this.actionChart = ActionChart.fromObject(stateKeys.actionChart, stateKeys.bookNumber);
@@ -256,7 +259,7 @@ export class State {
 
         // Get the action charts at the end of each book
         for (let i = 1; i <= 30; i++) {
-            const key = "state-book-" + i;
+            const key = "state-book-" + i.toString();
             const previousBookState = localStorage.getItem(key);
             if (previousBookState) {
                 saveGameObject.previousBooksState[i] = previousBookState;
@@ -275,7 +278,7 @@ export class State {
 
         // alert( json );
         // console.log( json );
-        const saveGameObject: SaveGameObject = JSON.parse(json);
+        const saveGameObject = <SaveGameObject>JSON.parse(json);
 
         // Check errors
         if (!saveGameObject || !saveGameObject.currentState) {
@@ -284,7 +287,7 @@ export class State {
 
         // Restore previous books action chart
         for (let i = 1; i <= 30; i++) {
-            const key = "state-book-" + i;
+            const key = "state-book-" + i.toString();
             if (saveGameObject.previousBooksState[i]) {
                 localStorage.setItem(key, saveGameObject.previousBooksState[i]);
             } else {

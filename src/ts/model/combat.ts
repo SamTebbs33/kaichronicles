@@ -1,4 +1,13 @@
-import { CombatTurn, state, GndDiscipline, MgnDiscipline, Bonus, translations, randomTable, Item, COMBATTABLE_DEATH, actionChartController, BookSeriesId } from "..";
+import { actionChartController } from "../controller/actionChartController";
+import { state } from "../state";
+import { translations } from "../views/viewsUtils/translations";
+import { Bonus } from "./actionChart";
+import { BookSeriesId } from "./bookSeries";
+import { COMBATTABLE_DEATH } from "./combatTable";
+import { CombatTurn } from "./combatTurn";
+import { GndDiscipline, MgnDiscipline } from "./disciplinesDefinitions";
+import { Item } from "./item";
+import { randomTable } from "./randomTable";
 
 export class Combat {
 
@@ -15,8 +24,7 @@ export class Combat {
     public originalEndurance: number;
 
     /** Combat turns */
-    public turns: CombatTurn[] = [];
-
+    public turns = new Array<CombatTurn>();
     /** Increment of combat skill of Lone Wolf in this combat  */
     public combatModifier = 0;
 
@@ -33,13 +41,13 @@ export class Combat {
     public noKaiSurge = false;
 
     /** The CS bonus to apply if the player has Mindblast discipline */
-    public mindblastBonus;
+    public mindblastBonus: number;
 
     /** The CS bonus to apply if the player has Psi-Surge discipline */
-    public psiSurgeBonus;
+    public psiSurgeBonus: number;
 
     /** The CS bonus to apply if the player has Kai-Surge discipline */
-    public kaiSurgeBonus;
+    public kaiSurgeBonus: number;
 
     /** The CS multiplier to apply to Mindblast/Psi-Surge attacks. It can have decimals (ex. 0.5) */
     public mindblastMultiplier = 1;
@@ -126,7 +134,7 @@ export class Combat {
     public bowCombat = false;
 
     /** Object ids that cannot be used on this combat. */
-    public disabledObjects: string[] = [];
+    public disabledObjects = new Array<string>();
 
     /** Adgana has been used on this combat? (see "pouchadgana" object) */
     public adganaUsed = false;
@@ -177,7 +185,7 @@ export class Combat {
      * @returns The combat bonuses. It includes the Action Chart bonuses
      */
     public getCSBonuses(): Bonus[] {
-        const bonuses: Bonus[] = [];
+        const bonuses = new Array<Bonus>();
 
         for (const bonus of state.actionChart.getCurrentCombatSkillBonuses(this)) {
             bonuses.push(bonus);
@@ -219,20 +227,14 @@ export class Combat {
      * @param elude True if the player is eluding the combat
      * @return Promise with the next CombatTurn
      */
-    public nextTurnAsync(elude: boolean): JQueryPromise<CombatTurn> {
-
-        const dfd = jQuery.Deferred<CombatTurn>();
-
+    public async nextTurnAsync(elude: boolean): Promise<CombatTurn> {
         // Calculate the turn
-        randomTable.getRandomValueAsync()
-            .then((randomValue) => {
-                const helshezagUsed = (state.actionChart.getSelectedWeapon() === Item.HELSHEZAG);
-                const turn = new CombatTurn(this, randomValue, elude, helshezagUsed);
-                this.turns.push(turn);
-                dfd.resolve(turn);
-            });
+        const randomValue = await randomTable.getRandomValueAsync();
 
-        return dfd.promise();
+        const helshezagUsed = (state.actionChart.getSelectedWeapon() === Item.HELSHEZAG);
+        const turn = new CombatTurn(this, randomValue, elude, helshezagUsed);
+        this.turns.push(turn);
+        return turn;
     }
 
     /**
@@ -240,37 +242,29 @@ export class Combat {
      * @param elude True if the player is eluding the combat
      * @return Promise with the next CombatTurn
      */
-    public checkKaiBlast(): JQueryPromise<CombatTurn> {
-        const dfd = jQuery.Deferred<CombatTurn>();
+    public async checkKaiBlast(): Promise<CombatTurn> {
         this.enemyKaiBlastLoss = 0;
 
-        if(!this.kaiBlast) {
+        if (!this.kaiBlast) {
             // No Kai-blast selected
-            dfd.resolve();
+            return
         } else {
             // Get the first value
-            randomTable.getRandomValueAsync(false, translations.text("pickKaiBlast", [1])).then((value1) => {
-                if(value1 === null) {
-                    dfd.reject();
-                    return;
-                }
-                // Get the second value
-                randomTable.getRandomValueAsync(false, translations.text("pickKaiBlast", [2])).then((value2) => {
-                    if(value2 === null) {
-                        dfd.reject();
-                        return;
-                    }
-                    // Set the enemy loss
-                    this.enemyKaiBlastLoss = -((value1 == 0 ? 1 : value1) + (value2 == 0 ? 1 : value2)) * this.mindblastMultiplier;
-                    dfd.resolve();
-                })
-            });
+            const value1 = await randomTable.getRandomValueAsync(false, translations.text("pickKaiBlast", [1]));
+            if (value1 === null) {
+                return;
+            }
+            // Get the second value
+            const value2 = await randomTable.getRandomValueAsync(false, translations.text("pickKaiBlast", [2]));
+            if (value2 === null) {
+                return;
+            }
+            // Set the enemy loss
+            this.enemyKaiBlastLoss = -((value1 == 0 ? 1 : value1) + (value2 == 0 ? 1 : value2)) * this.mindblastMultiplier;
         }
-
-        return dfd.promise();
     }
 
-    public static applyLoss(currentEndurance: number, loss: any): number {
+    public static applyLoss(currentEndurance: number, loss: number): number {
         if (loss === COMBATTABLE_DEATH) {
             return 0;
         } else {
@@ -324,12 +318,12 @@ export class Combat {
 
             // If dammage is permanent, display a toast
             if (this.permanentDammage) {
-                actionChartController.displayEnduranceChangeToast(-turn.loneWolf, true);
+                actionChartController.getInstance().displayEnduranceChangeToast(-turn.loneWolf, true);
             }
 
             if (this.checkHelshezagPermanentLoss(turn)) {
                 // Apply a permanent -1 EP due to Helshezag use
-                actionChartController.increaseEndurance(-1, false, true);
+                actionChartController.getInstance().increaseEndurance(-1, false, true);
             }
         }
 
@@ -346,7 +340,7 @@ export class Combat {
                 epToRestore = Math.floor(this.fakeRestoreFactor * epToRestore);
                 // If you call this, the endurance on the UI is not updated
                 // state.actionChart.increaseEndurance( epToRestore );
-                actionChartController.increaseEndurance(epToRestore);
+                actionChartController.getInstance().increaseEndurance(epToRestore);
             }
         }
     }

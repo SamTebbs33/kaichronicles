@@ -4,7 +4,9 @@
  * by Liquid State Limited.
  */
 
-import { Section, translations, mechanicsEngine } from "..";
+import { mechanicsEngine } from "../controller/mechanics/mechanicsEngine";
+import { translations } from "../views/viewsUtils/translations";
+import { Section } from "./section";
 
  /**
   * Tool to transform the book XML to HTML
@@ -30,7 +32,7 @@ export class SectionRenderer {
      * List of renderend foot note references ids.
      * Needed to avoid render not referenced foot notes
      */
-    private renderedFootNotesRefs: string[] = [];
+    private renderedFootNotesRefs = new Array<string>();
 
     /** Render text illustration instances for this section?  */
     public renderIllustrationsText = false;
@@ -168,7 +170,7 @@ export class SectionRenderer {
     ////////////////////////////////////////////////////////
 
     /** Render node as plain text */
-    private renderPlainText = function($node: JQuery<HTMLElement>, level: number): string {
+    private renderPlainText = function(this: SectionRenderer, $node: JQuery<HTMLElement>, level: number): string {
         return this.renderNodeChildren( $node , level );
     };
 
@@ -208,7 +210,7 @@ export class SectionRenderer {
         let noteHtml = this.renderNodeChildren( $footNote , level );
         // Add the note index to the HTML
         const $html = $("<div>").html( noteHtml );
-        $html.find(">:first-child").prepend("[" + (this.footNotes.length + 1) + "] ");
+        $html.find(">:first-child").prepend("[" + (this.footNotes.length + 1).toString() + "] ");
         noteHtml = $html.html();
         // Store the note
         const n = {
@@ -238,7 +240,7 @@ export class SectionRenderer {
         this.renderedFootNotesRefs.push( id );
         for (let i = 0, len = this.footNotes.length; i < len; i++) {
             if ( this.footNotes[i].id === id ) {
-                return "<sup>" + (i + 1) + "</sup>";
+                return "<sup>" + (i + 1).toString() + "</sup>";
             }
         }
         return "";
@@ -419,7 +421,7 @@ export class SectionRenderer {
      * @param $illustration Illustration to render (jQuery)
      * @returns The illustration HTML
      */
-    public static renderIllustration(section: Section, $illustration: any ): string {
+    public static renderIllustration(section: Section, $illustration: JQuery<HTMLElement> ): string {
         const renderer = new SectionRenderer(section);
         return renderer.illustration($illustration, 0);
     }
@@ -489,7 +491,7 @@ export class SectionRenderer {
         return "<i>" + this.renderNodeChildren( $spell , level ) + "</i>";
     }
 
-    public static getEnemyEndurance( $combat: JQuery<HTMLElement> ): any {
+    public static getEnemyEndurance( $combat: JQuery<HTMLElement> ): JQuery<HTMLElement> {
         let $enduranceAttr = $combat.find("enemy-attribute[class=endurance]");
         if ( $enduranceAttr.length === 0 ) {
             // Book 6 / sect26: The endurance attribute is "target"
@@ -502,7 +504,7 @@ export class SectionRenderer {
         return $enduranceAttr;
     }
 
-    public static getEnemyCombatSkill( $combat: JQuery<HTMLElement> ): any {
+    public static getEnemyCombatSkill( $combat: JQuery<HTMLElement> ): JQuery<HTMLElement> {
         return $combat.find(".combatskill");
     }
 
@@ -532,7 +534,6 @@ export class SectionRenderer {
     private section( $section: JQuery<HTMLElement> , level: number ): string {
         const sectionId = $section.attr("id");
         const innerSectionData = $section.find("data").first();
-        const headingLevel = level + 1;
         let sectionContent = '<div class="subsection" id="' + sectionId +
             '"><h4 class="subsectionTitle">' +
             $section.find( "> meta > title").text() + "</h4>";

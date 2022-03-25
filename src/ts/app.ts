@@ -1,4 +1,9 @@
-import { views, state, template, routing, declareCommonHelpers, mechanicsEngine } from ".";
+import { declareCommonHelpers } from "./common";
+import { mechanicsEngine } from "./controller/mechanics/mechanicsEngine";
+import { routing } from "./routing";
+import { state } from "./state";
+import { template } from "./template";
+import { views } from "./views";
 
 /** Execution enviroment type */
 export enum EnvironmentType {
@@ -12,6 +17,22 @@ export enum DebugMode {
     DEBUG = 1,
     TEST = 2
 }
+
+export * from "./controller/mainMenuController";
+export * from "./controller/privacyController";
+export * from "./controller/testsController";
+export * from "./controller/gameController";
+export * from "./controller/loadGameController";
+export * from "./controller/actionChartController";
+export * from "./controller/aboutController";
+export * from "./controller/faqController";
+export * from "./controller/mapController";
+export * from "./controller/projectAonLicenseController";
+export * from "./controller/setupController";
+export * from "./controller/newGameController";
+export * from "./controller/settingsController";
+export * from "./controller/kaimonasteryController";
+export * from "./controller/gameRulesController";
 
 /**
  * The web application
@@ -28,19 +49,20 @@ export class App {
     public static debugMode: DebugMode;
 
     /** Web application setup  */
-    public static run(environment: string) {
+    public static async run(environment: string) {
 
         // Declare helper functions in common.ts
         declareCommonHelpers();
 
-        App.environment =  environment as EnvironmentType;
+        App.environment = environment as EnvironmentType;
 
+        const urlParams = new URLSearchParams(window.location.search)
         // Are we in debug / test mode?
-        if (window.getUrlParameter("test") === "true") {
+        if (urlParams.get("test") === "true") {
             App.debugMode = DebugMode.TEST;
             // To avoid Selenium clicks blocked by navbar
             template.fixedNavbarTop();
-        } else if (window.getUrlParameter("debug") === "true") {
+        } else if (urlParams.get("debug") === "true") {
             App.debugMode = DebugMode.DEBUG;
         } else {
             App.debugMode = DebugMode.NO_DEBUG;
@@ -60,41 +82,33 @@ export class App {
         };
 
         // First, load the views
-        views.setup()
-            .then( () => {
-                try {
-                    console.log("Real setup started");
+        try {
+            await views.setup();
 
-                    // Then do the real application setup
-                    state.setupDefaultColorTheme();
-                    template.setup();
-                    routing.setup();
+            //try {
+            console.log("Real setup started");
 
-                    if ( App.debugMode === DebugMode.DEBUG && state.existsPersistedState() ) {
-                        // If we are developing a book, avoid to press the "Continue game"
-                        routing.redirect( "setup" );
-                    }
+            // Then do the real application setup
+            state.setupDefaultColorTheme();
+            template.setup();
+            routing.setup();
 
-                } catch (e) {
-                    // d'oh!
-                    mechanicsEngine.debugWarning(e);
-                    return jQuery.Deferred().reject(e).promise();
-                }
-            })
-            // This chain can fail for any reason, not just because it failed the views load
-            /*.fail(function(jqXHR, textStatus, errorThrown) {
-                let reason = "Error loading views.html, error: " +
-                ajaxErrorMsg(this, jqXHR, textStatus, errorThrown);
-                if ( !reason ) {
-                    reason = "Unknown error";
-                }
-                template.setErrorMessage(reason);
-            });*/
-            .fail((reason) => {
-                if ( !reason ) {
-                  reason = "Unknown error";
-                }
-                template.setErrorMessage(reason.toString());
-            });
+            if (App.debugMode === DebugMode.DEBUG && state.existsPersistedState()) {
+                // If we are developing a book, avoid to press the "Continue game"
+                routing.redirect("setup");
+            }
+
+        } catch (e) {
+            // d'oh!
+            mechanicsEngine.debugWarning(e);
+            return jQuery.Deferred().reject(e).promise();
+        }
+        /*} catch (reason) {
+            // TODO
+            if (!reason) {
+                template.setErrorMessage("Unknown error");
+            }
+            template.setErrorMessage(reason.toString());
+        }*/
     }
 }

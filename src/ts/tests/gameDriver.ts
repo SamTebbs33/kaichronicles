@@ -1,10 +1,18 @@
-import { WebDriver, Builder, WebElement, By, until, Alert } from "selenium-webdriver";
-import { state, Mechanics, BookSectionStates, Book, declareCommonHelpers, BookSeriesId, CombatMechanics } from "..";
+import { WebDriver, Builder, WebElement, By, until, Alert, Browser } from "selenium-webdriver";
 import { Type, Level } from "selenium-webdriver/lib/logging";
 import { readFileSync } from "fs-extra";
 import { ActionChart } from "../model/actionChart";
+import { ServiceBuilder } from "selenium-webdriver/edge"
+import { state } from "../state";
+import { Book } from "../model/book";
+import { Mechanics } from "../model/mechanics";
+import { BookSectionStates } from "../model/bookSectionStates";
+import { CombatMechanics } from "../controller/mechanics/combatMechanics";
+import { BookSeriesId } from "../model/bookSeries";
+import { declareCommonHelpers } from "../common";
 
 declare global {
+    // eslint-disable-next-line @typescript-eslint/no-namespace
     namespace NodeJS {
         interface Global {
             jQuery: typeof import("jquery"),
@@ -21,9 +29,11 @@ export class GameDriver {
     private driver: WebDriver = null;
 
     /** URL to start a new game */
-    private newGameUrl;
+    private newGameUrl: string;
 
     private static readonly BASEPATH = "www/";
+
+    serviceBuilder = new ServiceBuilder("D:/kaichronicles/webdriver/msedgedriver.exe");
 
     public constructor() {
         this.newGameUrl = "http://localhost:3000";
@@ -36,7 +46,7 @@ export class GameDriver {
     public async setupBrowser() {
         // Setup Selenium
         // console.log("Setup Selenium");
-        this.driver = await new Builder().forBrowser("chrome").build();
+        this.driver = await new Builder().forBrowser(Browser.EDGE).setEdgeService(this.serviceBuilder).build();
         // Maximize to avoid links get shadows by toastr
         await this.driver.manage().window().maximize();
     }
@@ -87,7 +97,7 @@ export class GameDriver {
     }
 
     public async increaseMoney(amount: number) {
-        await this.driver.executeScript(`kai.actionChartController.increaseMoney(${amount})`);
+        await this.driver.executeScript(`kai.actionChartController.getInstance().increaseMoney(${amount})`);
     }
 
     public async fireInventoryEvents() {
@@ -98,7 +108,7 @@ export class GameDriver {
         await this.driver.executeScript("console.clear()");
     }
 
-    public async loadCleanSection(sectionId: string, deleteLog: boolean = true) {
+    public async loadCleanSection(sectionId: string, deleteLog = true) {
         // Reset state. DO NO extract this execute to a standalone method: kai.state.sectionStates.currentSection will be null
         // and it will throw exceptions
         await this.driver.executeScript(
@@ -116,7 +126,7 @@ export class GameDriver {
 
     public async goToSection(sectionId: string) {
         // Load section
-        await this.driver.executeScript(`kai.gameController.loadSection("${sectionId}")`);
+        await this.driver.executeScript(`kai.gameController.getInstance().loadSection("${sectionId}")`);
 
         // Wait section render
         await this.waitForSectionReady();
@@ -125,19 +135,19 @@ export class GameDriver {
     }
 
     public async getLogErrors(): Promise<string[]> {
-        const errors = [];
+        const errors = new Array<string>();
         for (const entry of await this.driver.manage().logs().get(Type.BROWSER)) {
-            if (entry.level === Level.SEVERE ) {
+            if (entry.level === Level.SEVERE) {
                 errors.push(entry.message);
             }
         }
         return errors;
     }
 
-    public async debugSleep(miliseconds: number = 2500) {
+    public async debugSleep(miliseconds = 2500) {
         try {
             await this.driver.wait(until.elementLocated(By.id("notexists")), miliseconds);
-        // eslint-disable-next-line no-empty
+            // eslint-disable-next-line no-empty
         } catch { }
     }
 
@@ -153,7 +163,7 @@ export class GameDriver {
         // Go to new game page
         await this.driver.get(this.newGameUrl);
         // Select new book
-        await( await this.driver.wait( until.elementLocated( By.css(`#newgame-book > option[value='${bookNumber}']`) ) , 10000) ).click();
+        await (await this.driver.wait(until.elementLocated(By.css(`#newgame-book > option[value='${bookNumber}']`)), 10000)).click();
 
         // Click start game
         await (await this.driver.wait(until.elementLocated(By.id("newgame-start")), 10000)).click();
@@ -181,7 +191,7 @@ export class GameDriver {
     }
 
     public async waitForSectionReady() {
-        await this.driver.wait( until.elementLocated( By.id("section-ready") ) , 10000);
+        await this.driver.wait(until.elementLocated(By.id("section-ready")), 10000);
     }
 
     public async cleanSectionReady() {
@@ -195,11 +205,11 @@ export class GameDriver {
     }
 
     public async clickPlayCombatTurn() {
-        await this.cleanClickAndWait( await this.getElementByCss(CombatMechanics.PLAY_TURN_BTN_SELECTOR) );
+        await this.cleanClickAndWait(await this.getElementByCss(CombatMechanics.PLAY_TURN_BTN_SELECTOR));
     }
 
     public async getCombatRatio(): Promise<number> {
-        return parseInt( await this.getTextByCss(CombatMechanics.COMBAT_RATIO_SELECTOR) , 10);
+        return parseInt(await this.getTextByCss(CombatMechanics.COMBAT_RATIO_SELECTOR), 10);
     }
 
     public async getSurgeCheckbox(): Promise<WebElement> {
@@ -222,7 +232,7 @@ export class GameDriver {
     }
 
     public async setEndurance(currentEndurance: number) {
-        const js = `kai.actionChartController.setEndurance(${currentEndurance});`;
+        const js = `kai.actionChartController.getInstance().setEndurance(${currentEndurance});`;
         await this.driver.executeScript(js);
     }
 
@@ -261,21 +271,21 @@ export class GameDriver {
         return await this.getElementByCss(`a[data-objectid=${objectId}][data-op=${op}]`);
     }
 
-    public async pick(objectId: string, fromSection: boolean = false) {
+    public async pick(objectId: string, fromSection = false) {
         if (!fromSection) {
-            await this.driver.executeScript(`kai.actionChartController.pick("${objectId}")`);
+            await this.driver.executeScript(`kai.actionChartController.getInstance().pick("${objectId}")`);
         } else {
             const pickLink = await this.getObjectOpLink(objectId, "get");
             await this.cleanClickAndWait(pickLink);
         }
     }
 
-    public async drop(objectId: string, availableOnSection: boolean = false) {
-        await this.driver.executeScript(`kai.actionChartController.drop("${objectId}", ${availableOnSection})`);
+    public async drop(objectId: string, availableOnSection = false) {
+        await this.driver.executeScript(`kai.actionChartController.getInstance().drop("${objectId}", ${availableOnSection ? "true" : "false"})`);
     }
 
     public async increaseArrows(count: number) {
-        await this.driver.executeScript(`kai.actionChartController.increaseArrows(${count})`);
+        await this.driver.executeScript(`kai.actionChartController.getInstance().increaseArrows(${count})`);
     }
 
     public async goToActionChart() {
@@ -293,7 +303,7 @@ export class GameDriver {
         declareCommonHelpers(false);
 
         // Setup jQuery
-        // tslint:disable-next-line: no-var-requires
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         global.jQuery = require("jquery");
         global.$ = global.jQuery;
     }

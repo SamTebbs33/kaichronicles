@@ -1,50 +1,70 @@
-import { Section, setupController, state, Book, routing, views, gameView, template, mechanicsEngine, App, BookValidator, DebugMode } from "..";
+import { App, DebugMode } from "../app";
+import { Book } from "../model/book";
+import { BookValidator } from "../model/bookValidator";
+import { Section } from "../model/section";
+import { routing } from "../routing";
+import { state } from "../state";
+import { template } from "../template";
+import { views } from "../views";
+import { gameView } from "../views/gameView";
+import { Controller } from "./controllerFactory";
+import { mechanicsEngine } from "./mechanics/mechanicsEngine";
+import { setupController } from "./setupController";
 
 /**
  * The game controller
  */
-export const gameController = {
+export class gameController implements Controller {
+
+    private static instance: gameController;
+
+    private constructor() {
+        // Set constructor private
+    }
+
+    public static getInstance(): gameController {
+        if(!this.instance) {
+            this.instance = new this()
+        }
+        return this.instance;
+    }
 
     /**
      * The current book section
      */
-    currentSection: null as Section,
+    currentSection: Section = null;
 
     /**
      * Setup the game view
      */
-    index() {
-
-        if (!setupController.checkBook()) {
+    async index() {
+        if (!setupController.getInstance().checkBook()) {
             return;
         }
 
         if (state.sectionStates.currentSection === Book.KAIMONASTERY_SECTION) {
-            gameController.gameTemplateSetup();
+            this.gameTemplateSetup();
             // Special case: Move to the inexistent section for the Kai monastery
             routing.redirect("kaimonastery");
             return;
         }
 
-        views.loadView("game.html")
-            .then(() => {
-                gameController.gameTemplateSetup();
-                gameView.setup();
-                // Go to the current section (or the initial)
-                let sec = state.sectionStates.currentSection;
-                if (!sec) {
-                    sec = Book.INITIAL_SECTION;
-                }
-                gameController.loadSection(sec, false, state.actionChart.yScrollPosition);
-            });
-
-    },
+        await views.loadView("game.html");
+        this.gameTemplateSetup();
+        gameView.setup();
+        // Go to the current section (or the initial)
+        let sec = state.sectionStates.currentSection;
+        if (!sec) {
+            sec = Book.INITIAL_SECTION;
+        }
+        this.loadSection(sec, false, state.actionChart.yScrollPosition);
+    }
 
     /** Setup the HTML main page template for the game view */
     gameTemplateSetup() {
         template.showStatistics(true);
         template.setNavTitle(state.book.getBookTitle(), "#game", false);
-    },
+    }
 
     /**
      * Load and display a section
@@ -52,15 +72,14 @@ export const gameController = {
      * @param choiceLinkClicked True if the section is load due to a choice link click
      * @param yScroll y coord. where to scroll initially
      */
-    loadSection(sectionId: string, choiceLinkClicked: boolean = false, yScroll: number = 0) {
-
+    loadSection(sectionId: string, choiceLinkClicked = false, yScroll = 0) {
         // Load and display the section
         const newSection = new Section(state.book, sectionId, state.mechanics);
         if (!newSection.exists()) {
             mechanicsEngine.debugWarning("Section " + sectionId + " does not exists");
             return;
         }
-        gameController.currentSection = newSection;
+        this.currentSection = newSection;
 
         // Clear previous section toasts:
         toastr.clear();
@@ -75,13 +94,13 @@ export const gameController = {
         state.sectionStates.currentSection = sectionId;
 
         // Show the section
-        gameView.setSectionContent(gameController.currentSection);
+        gameView.setSectionContent(this.currentSection);
 
         // Update previous / next navigation links
-        gameView.updateNavigation(gameController.currentSection);
+        gameView.updateNavigation(this.currentSection);
 
         // Run section mechanics
-        mechanicsEngine.run(gameController.currentSection);
+        mechanicsEngine.run(this.currentSection);
 
         // Bind choice links
         gameView.bindChoiceLinks();
@@ -103,39 +122,38 @@ export const gameController = {
         if (App.debugMode === DebugMode.DEBUG || App.debugMode === DebugMode.TEST) {
             // Validate this section
             const validator = new BookValidator(state.mechanics, state.book);
-            validator.validateSection(gameController.currentSection.sectionId);
+            validator.validateSection(this.currentSection.sectionId);
             for (const error of validator.errors) {
                 mechanicsEngine.debugWarning(error);
             }
 
             template.addSectionReadyMarker();
         }
-    },
+    }
 
     /**
      * Navigate to the previous or next section
      * @param increment -1 to go the previous. +1 to the next
      */
     onNavigatePrevNext(increment: number) {
-        const s = gameController.currentSection;
+        const s = this.currentSection;
         const newId = (increment < 0 ? s.getPreviousSectionId() : s.getNextSectionId());
         if (newId) {
-            gameController.loadSection(newId);
+            this.loadSection(newId);
         } else {
             mechanicsEngine.debugWarning("No previous/next section found");
         }
-    },
+    }
 
     /** Return page */
     getBackController() {
         return "mainMenu";
-    },
+    }
 
     /**
      * On leave controller
      */
     onLeave() {
-
         if (!state || !state.actionChart) {
             return;
         }
@@ -149,4 +167,4 @@ export const gameController = {
         state.persistState();
     }
 
-};
+}

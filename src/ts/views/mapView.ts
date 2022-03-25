@@ -1,4 +1,6 @@
-import { Section, state, Item } from "..";
+import { Item } from "../model/item";
+import { Section } from "../model/section";
+import { state } from "../state";
 
 export const mapView = {
 
@@ -60,7 +62,7 @@ export const mapView = {
         });
 
         // Add window resize event handler
-        window.addEventListener( "resize" , mapView.onWindowResize , false);
+        window.addEventListener( "resize" , () => mapView.onWindowResize() , false);
     },
 
     /**
@@ -68,14 +70,14 @@ export const mapView = {
      */
     unbindEvents() {
         // console.log( 'mapView.unbindEvents' );
-        window.removeEventListener( "resize" , mapView.onWindowResize );
+        window.removeEventListener( "resize" , () => mapView.onWindowResize() );
     },
 
     /**
      * Event handler for window resize.
      * This will reset the map zoom
      */
-    onWindowResize( e: Event ) {
+    onWindowResize() {
         // Window has been resized (orientation change). Reset to original size:
         // console.log( 'onWindowResize' );
         const $image = $("#map-section img");

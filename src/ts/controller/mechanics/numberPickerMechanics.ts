@@ -1,4 +1,6 @@
-import { mechanicsEngine, state, gameView } from "../..";
+import { state } from "../../state";
+import { gameView } from "../../views/gameView";
+import { mechanicsEngine } from "./mechanicsEngine";
 
 /**
  * Tool to select a number (or an amount of money)
@@ -8,7 +10,7 @@ export const numberPickerMechanics = {
     /**
      * numberPicker rule execution
      */
-    numberPicker(rule: any) {
+    numberPicker(rule: Element) {
 
         if ($(rule).attr("enabled") === "false") {
             // Disable the money picker
@@ -33,7 +35,7 @@ export const numberPickerMechanics = {
                 if (mechanicsEngine.fireNumberPickerChoosed()) {
                     // Store that the picker action has been fired
                     const sectionState = state.sectionStates.getSectionState();
-                    sectionState.numberPickersState.actionFired = true;
+                    sectionState.numberPickersState.set("actionFired", "true");
                 }
             });
         }
@@ -67,10 +69,10 @@ export const numberPickerMechanics = {
     /** Return true if the action button has been already clicked  */
     actionButtonWasClicked(): boolean {
         const sectionState = state.sectionStates.getSectionState();
-        return sectionState.numberPickersState.actionFired === true;
+        return sectionState.numberPickersState.get("actionFired") === "true";
     },
 
-    bindButtonActionEvent($pickNumberButton: any, callback: () => void) {
+    bindButtonActionEvent($pickNumberButton: JQuery<HTMLElement>, callback: () => void) {
 
         if (!$pickNumberButton) {
             $pickNumberButton = $("#mechanics-picknumber");

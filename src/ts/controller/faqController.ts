@@ -1,18 +1,38 @@
-import { template, translations, views } from "..";
-
 /**
  * FAQ controller
  */
 
-// tslint:disable-next-line: class-name
-export class faqController {
+import { template } from "../template";
+import { views } from "../views";
+import { translations } from "../views/viewsUtils/translations";
+import { Controller } from "./controllerFactory";
 
-    public static index() {
+// tslint:disable-next-line: class-name
+export class faqController implements Controller {
+
+    private static instance: faqController;
+
+    private constructor() {
+        // Set constructor private
+    }
+
+    onLeave() {
+        // Do Nothing
+    }
+
+    public static getInstance(): faqController {
+        if(!this.instance) {
+            this.instance = new this()
+        }
+        return this.instance;
+    }
+
+    public async index() {
         template.setNavTitle( translations.text("kaiChronicles"), "#mainMenu", true);
-        views.loadView("faq.html");
+        await views.loadView("faq.html");
     }
 
     /** Return page */
-    public static getBackController() { return "mainMenu"; }
+    public getBackController() { return "mainMenu"; }
 
 }

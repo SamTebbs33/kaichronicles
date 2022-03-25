@@ -1,24 +1,26 @@
-import { ActionChartItem, ActionChart, Item } from "..";
 import { mechanicsEngine } from "../controller/mechanics/mechanicsEngine";
+import { ActionChart } from "./actionChart";
+import { ActionChartItem } from "./actionChartItem";
+import { Item } from "./item";
 
 /**
  * Inventory state at one point
  */
 export class InventoryState {
 
-    public weapons: ActionChartItem[] = [];
+    public weapons = new Array<ActionChartItem>();
 
-    public hasBackpack: boolean = false;
+    public hasBackpack = false;
 
-    public backpackItems: ActionChartItem[] = [];
+    public backpackItems = new Array<ActionChartItem>();
 
-    public specialItems: ActionChartItem[] = [];
+    public specialItems = new Array<ActionChartItem>();
 
-    public beltPouch: number = 0;
+    public beltPouch = 0;
 
-    public arrows: number = 0;
+    public arrows = 0;
 
-    public meals: number = 0;
+    public meals = 0;
 
     /**
      * Create a inventory state with the current inventory state
@@ -97,7 +99,7 @@ export class InventoryState {
     public getAndRemoveSpecialItemsNonWeapon(): ActionChartItem[] {
 
         // Recover only non-weapon special items
-        const toRecover: ActionChartItem[] = [];
+        const toRecover = new Array<ActionChartItem>();
         for (const aChartItem of this.specialItems) {
             const i = aChartItem.getItem();
             if (i && !i.isWeapon()) {
@@ -117,7 +119,7 @@ export class InventoryState {
      * Create a inventory state from an object
      * @param object The inventory state object. Must to have same properties than InventoryState
      */
-    public static fromObject(object: any): InventoryState {
+    public static fromObject(object: InventoryState): InventoryState {
         if (!object) {
             return new InventoryState();
         }
@@ -132,8 +134,8 @@ export class InventoryState {
     }
 
     /** Return a plain object with this instance info. */
-    public toObject(): any {
-        return {
+    public toObject(): InventoryState {
+        return <InventoryState> {
             weapons: this.weapons,
             hasBackpack: this.hasBackpack,
             backpackItems: this.backpackItems,

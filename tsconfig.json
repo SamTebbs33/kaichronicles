@@ -1,9 +1,11 @@
 {
     "compilerOptions": {
+        "module": "esnext",
         "outDir" : "src/js",
         "sourceMap": true,
         "rootDir" : "src/ts",
-        "target": "es5"
+        "target": "es2017",
+        "moduleResolution": "node"
     },
 
     "include": [

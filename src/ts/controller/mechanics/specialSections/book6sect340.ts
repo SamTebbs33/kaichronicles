@@ -1,4 +1,8 @@
-import { mechanicsEngine, gameView, ExpressionEvaluator, state, randomMechanics } from "../../..";
+import { ExpressionEvaluator } from "../../../model/expressionEvaluator";
+import { state } from "../../../state";
+import { gameView } from "../../../views/gameView";
+import { mechanicsEngine } from "../mechanicsEngine";
+import { randomMechanics } from "../randomMechanics";
 
 /** Bow tournament */
 export const book6sect340 = {
@@ -20,7 +24,7 @@ export const book6sect340 = {
     },
 
     getState(): number[] {
-        let tournmentState = state.sectionStates.otherStates.book6sect340;
+        let tournmentState = <number[]> state.sectionStates.otherStates.book6sect340;
         if ( !tournmentState ) {
             tournmentState = [ -1 , -1 , -1 ];
             state.sectionStates.otherStates.book6sect340 = tournmentState;
@@ -36,7 +40,7 @@ export const book6sect340 = {
             randomMechanics.linkAddChooseValue( $link , tournmentState[i] , 0);
         } else {
             randomMechanics.bindTableRandomLink( $link ,
-                (value: number, increment: number) => {
+                (value: number) => {
                     tournmentState[i] = value;
                     book6sect340.updateUI();
                 },

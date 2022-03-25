@@ -1,5 +1,12 @@
-import { state, ExpressionEvaluator, numberPickerMechanics, MealMechanics, translations, randomTable, mechanicsEngine,
-    EquipmentSectionMechanics, template } from "../..";
+import { ExpressionEvaluator } from "../../model/expressionEvaluator";
+import { randomTable } from "../../model/randomTable";
+import { state } from "../../state";
+import { template } from "../../template";
+import { translations } from "../../views/viewsUtils/translations";
+import { EquipmentSectionMechanics } from "./equipmentSectionMechanics";
+import { MealMechanics } from "./mealMechanics";
+import { mechanicsEngine } from "./mechanicsEngine";
+import { numberPickerMechanics } from "./numberPickerMechanics";
 
 /**
  * Random table links mechanics
@@ -14,7 +21,7 @@ export const randomMechanics = {
     /**
      * Assing an action to a random table link.
      */
-    randomTable(rule) {
+    randomTable(rule: Element) {
 
         // Do not enable anything if the player is death:
         if (state.actionChart.currentEndurance <= 0) {
@@ -22,7 +29,7 @@ export const randomMechanics = {
         }
 
         // The DOM link:
-        let $link;
+        let $link: JQuery<HTMLElement>;
 
         // Check if the link is selected by plain text:
         const linkText = $(rule).attr("text");
@@ -56,21 +63,21 @@ export const randomMechanics = {
         }
     },
 
-    getRandomTableRefByIndex(index: number): any {
+    getRandomTableRefByIndex(index: number): JQuery<HTMLElement> {
         if (!index) {
             index = 0;
         }
-        return $(".random:eq( " + index + ")");
+        return $(".random:eq( " + index.toString() + ")");
     },
 
-    getRandomTableRefByRule(rule: any) {
+    getRandomTableRefByRule(rule: Element) {
         // Not really clear for me: parseInt(undefined) => Nan. It works, because (parseInt(undefined) ? true : false) === false, but, brfff...
         // return randomMechanics.getRandomTableRefByIndex( parseInt($(rule).attr('index')) );
         let indexValue = $(rule).attr("index");
         if (!indexValue) {
             indexValue = "0";
         }
-        return randomMechanics.getRandomTableRefByIndex( parseInt(indexValue, 10) );
+        return randomMechanics.getRandomTableRefByIndex(parseInt(indexValue, 10));
     },
 
     /**
@@ -87,7 +94,7 @@ export const randomMechanics = {
     },
 
     /** Increment for random table selection */
-    randomTableIncrement(rule: any) {
+    randomTableIncrement(rule: Element) {
 
         const $link = randomMechanics.getRandomTableRefByRule(rule);
         const txtIncrement: string = $(rule).attr("increment");
@@ -118,63 +125,64 @@ export const randomMechanics = {
      * @param onLinkPressed Callback to call when the link is pressed
      * @param {boolean} zeroAsTen true if the zero must to be returned as ten
      */
-    bindTableRandomLink($element: any, onLinkPressed: (value: number, increment: number) => void,
-                        zeroAsTen: boolean) {
+    bindTableRandomLink($element: JQuery<HTMLElement>, onLinkPressed: (value: number, increment: number) => void,
+        zeroAsTen: boolean) {
 
         // If the element is an span, replace it by a link
         $element = randomMechanics.setupRandomTableLink($element);
 
-        $element.on("click", function(e: Event) {
-            e.preventDefault();
+        $element.on("click", function (e) {
+            const handler = async () => {
+                e.preventDefault();
 
-            if ($(this).hasClass("disabled")) {
-                // Already clicked
-                return;
-            }
+                if ($(this).hasClass("disabled")) {
+                    // Already clicked
+                    return;
+                }
 
-            // Validate money picker, if there is. If its not valid, don't follow with this link
-            if (!numberPickerMechanics.isValid()) {
-                return;
-            }
+                // Validate money picker, if there is. If its not valid, don't follow with this link
+                if (!numberPickerMechanics.isValid()) {
+                    return;
+                }
 
-            // If there are pending meals, don't follow with this link
-            if (MealMechanics.arePendingMeals()) {
-                alert(translations.text("doMealFirst"));
-                return;
-            }
+                // If there are pending meals, don't follow with this link
+                if (MealMechanics.arePendingMeals()) {
+                    alert(translations.text("doMealFirst"));
+                    return;
+                }
 
-            // Get the random value
-            randomTable.getRandomValueAsync(zeroAsTen)
-                .then((value) => {
-                    // Get the increment
-                    const incrementValue = $(this).attr("data-increment");
-                    let increment = 0;
-                    if (incrementValue) {
-                        increment = parseInt(incrementValue, 10);
-                    }
+                // Get the random value
+                const value = await randomTable.getRandomValueAsync(zeroAsTen);
+                // Get the increment
+                const incrementValue = $(this).attr("data-increment");
+                let increment = 0;
+                if (incrementValue) {
+                    increment = parseInt(incrementValue, 10);
+                }
 
-                    // Show the result on the link
-                    randomMechanics.linkAddChooseValue($(this), value, increment);
+                // Show the result on the link
+                randomMechanics.linkAddChooseValue($(this), value, increment);
 
-                    // Fire the event:
-                    onLinkPressed(value, increment);
+                // Fire the event:
+                onLinkPressed(value, increment);
 
-                    template.addSectionReadyMarker();
-                });
+                template.addSectionReadyMarker();
+            };
+            void handler();
         });
     },
 
     /**
      * Setup a tag to link to the random table
-     * @param {jQuery} $element The DOM element to setup
+     * @param {JQuery} $element The DOM element to setup
      * @param alreadyChoose If it's true, the link will be set disabled
      * @param valueAlreadyChoose Only needed if alreadyChoose is true. It's the
      * previously random value got
      * @param increment The increment to the choose value, due to game rules
      * @return {jquery} The link tag already processed
      */
-    setupRandomTableLink($element: any, alreadyChoose: boolean = false, valueAlreadyChoose: number = 0,
-                         increment: number = 0): any {
+    setupRandomTableLink($element: JQuery<HTMLElement>, alreadyChoose = false, valueAlreadyChoose = 0,
+        increment = 0): JQuery<HTMLElement> {
 
         if (!$element || $element.length === 0) {
             mechanicsEngine.debugWarning("Random table link not found");
@@ -183,7 +191,7 @@ export const randomMechanics = {
 
         // Initially, the random table links are plain text (spans). When they got setup by a random rule, they
         // are converted to links:
-        if ($element.prop("tagName").toLowerCase() === "span") {
+        if ((<string>$element.prop("tagName")).toLowerCase() === "span") {
             const $link = $('<a class="random action" href="#">' + $element.html() + "</a>");
             $element.replaceWith($link);
             $element = $link;
@@ -199,18 +207,18 @@ export const randomMechanics = {
     /**
      * Change a random table link to clicked
      */
-    linkAddChooseValue($link: any, valueChoose: number, increment: number) {
+    linkAddChooseValue($link: JQuery<HTMLElement>, valueChoose: number, increment: number) {
 
-        if ($link.hasClass("picked")) {
+        if (valueChoose === null || $link.hasClass("picked")) {
             // The link text / format has been already assigned
             return;
         }
 
         let html = valueChoose.toString();
         if (increment > 0) {
-            html += " + " + increment;
+            html += " + " + increment.toString();
         } else if (increment < 0) {
-            html += " - " + (-increment);
+            html += " - " + (-increment).toString();
         }
         $link.append(" (" + html + ")");
         // Disable the link:
@@ -224,7 +232,7 @@ export const randomMechanics = {
      * @param rule The "randomTable" rule
      * @param randomValue The random value result from the table
      */
-    onRandomTableMechanicsClicked(rule: any, randomValue: number, increment: number) {
+    onRandomTableMechanicsClicked(rule: Element, randomValue: number, increment: number) {
 
         // Set the last choosed value
         randomMechanics.lastValue = randomValue + increment;
@@ -261,14 +269,14 @@ export const randomMechanics = {
         }
 
         // Test from / to value
-        let fromValue = null;
+        let fromValue: number = null;
         const txtFromValue: string = $rule.attr("from");
         if (txtFromValue) {
             fromValue = parseInt(txtFromValue, 10);
         }
 
         // Test from / to value
-        let toValue = null;
+        let toValue: number = null;
         const txtToValue: string = $rule.attr("to");
         if (txtToValue) {
             toValue = parseInt(txtToValue, 10);

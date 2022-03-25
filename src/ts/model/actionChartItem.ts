@@ -1,4 +1,5 @@
-import { Item, state } from "..";
+import { state } from "../state";
+import { Item } from "./item";
 
 /**
  * Information about an item stored in the action chart
@@ -27,7 +28,7 @@ export class ActionChartItem {
      * @param id Item identifier
      * @param usageCount Number of allowed item uses. If < 0 or not passed, the default numberuses will be assigned from the Item
      */
-    constructor(id: string = null, usageCount: number = -1) {
+    constructor(id: string = null, usageCount = -1) {
         this.id = id;
         if (usageCount >= 0) {
             this.usageCount = usageCount;
@@ -47,7 +48,7 @@ export class ActionChartItem {
     /////////////////////////////////////////////////
 
     public static findById(array: ActionChartItem[], itemId: string): number {
-        for ( let i = 0; i < array.length; i++) {
+        for (let i = 0; i < array.length; i++) {
             if (array[i].id === itemId) {
                 return i;
             }
@@ -69,7 +70,7 @@ export class ActionChartItem {
     }
 
     public static getIds(array: ActionChartItem[]): string[] {
-        const ids: string[] = [];
+        const ids = new Array<string>();
         for (const i of array) {
             ids.push(i.id);
         }
@@ -77,15 +78,15 @@ export class ActionChartItem {
     }
 
     public static fromObjectsArray(array: object[]): ActionChartItem[] {
-        const result = [];
-        for ( const o of array) {
+        const result = new Array<ActionChartItem>();
+        for (const o of array) {
             // On versions <= 1.11, the arrays elements in Action Chart (weapons, special and backpack items)
             // were a string with the item id. Starting from v. 1.12 they are an ActionChart, to store
             // the objects usage left. In v.1.11 and previous there was only one use
-            if (typeof(o) === "string") {
-                result.push( new ActionChartItem(o, 1) );
+            if (typeof (o) === "string") {
+                result.push(new ActionChartItem(o, 1));
             } else {
-                result.push( $.extend(new ActionChartItem(), o) );
+                result.push($.extend(new ActionChartItem(), o));
             }
         }
         return result;

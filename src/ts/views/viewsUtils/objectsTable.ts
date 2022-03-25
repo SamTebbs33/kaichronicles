@@ -1,4 +1,9 @@
-import { ObjectsTableItem, ActionChartItem, SectionItem, state, Item, translations } from "../..";
+import { ActionChartItem } from "../../model/actionChartItem";
+import { Item } from "../../model/item";
+import { SectionItem } from "../../model/sectionState";
+import { state } from "../../state";
+import { ObjectsTableItem } from "./objectsTableItem";
+import { translations } from "./translations";
 
 /**
  * Kind of objects table
@@ -21,10 +26,10 @@ export class ObjectsTable {
     private type: ObjectsTableType;
 
     /** The jQuery for the objects table tag */
-    private $tableBody: any;
+    private $tableBody: JQuery<HTMLElement>;
 
     /** The objects to render */
-    private objects: ObjectsTableItem[] = [];
+    private objects = new Array<ObjectsTableItem>();
 
     /**
      * Fill table with object descriptions.

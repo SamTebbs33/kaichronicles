@@ -1,9 +1,43 @@
-import { views, translations, Section, gameView, state, CombatMechanics, randomMechanics, Combat, Item, routing, gameController,
-    App, ExpressionEvaluator, numberPickerMechanics, SkillsSetup, SetupDisciplines, EquipmentSectionMechanics, actionChartController,
-    Currency, LoreCircle, BookSeriesId, MealMechanics, ActionChartItem, InventoryState, actionChartView, template, Book,
-    GrandMasterUpgrade, kaimonasteryController, book2sect238, book2sect308, book3sect88, book6sect26, book6sect284,
-    book6sect340, book9sect91, ObjectsTable, ObjectsTableType, setupController, KaiDiscipline, MgnDiscipline,
-    GndDiscipline, projectAon, DebugMode } from "../..";
+import { App, DebugMode } from "../../app";
+import { ActionChartItem } from "../../model/actionChartItem";
+import { Book } from "../../model/book";
+import { BookSeriesId } from "../../model/bookSeries";
+import { Combat } from "../../model/combat";
+import { Currency } from "../../model/currency";
+import { KaiDiscipline, MgnDiscipline, GndDiscipline } from "../../model/disciplinesDefinitions";
+import { ExpressionEvaluator } from "../../model/expressionEvaluator";
+import { InventoryState } from "../../model/inventoryState";
+import { Item } from "../../model/item";
+import { LoreCircle } from "../../model/loreCircle";
+import { projectAon } from "../../model/projectAon";
+import { Section } from "../../model/section";
+import { routing } from "../../routing";
+import { state } from "../../state";
+import { template } from "../../template";
+import { views } from "../../views";
+import { actionChartView } from "../../views/actionChartView";
+import { gameView } from "../../views/gameView";
+import { ObjectsTable, ObjectsTableType } from "../../views/viewsUtils/objectsTable";
+import { translations } from "../../views/viewsUtils/translations";
+import { actionChartController } from "../actionChartController";
+import { gameController } from "../gameController";
+import { kaimonasteryController } from "../kaimonasteryController";
+import { setupController } from "../setupController";
+import { CombatMechanics } from "./combatMechanics";
+import { EquipmentSectionMechanics } from "./equipmentSectionMechanics";
+import { GrandMasterUpgrade } from "./grandMasterUpgrade";
+import { MealMechanics } from "./mealMechanics";
+import { numberPickerMechanics } from "./numberPickerMechanics";
+import { randomMechanics } from "./randomMechanics";
+import { SetupDisciplines } from "./setupDisciplines";
+import { SkillsSetup } from "./skillsSetup";
+import { book2sect238 } from "./specialSections/book2sect238";
+import { book2sect308 } from "./specialSections/book2sect308";
+import { book3sect88 } from "./specialSections/book3sect88";
+import { book6sect26 } from "./specialSections/book6sect26";
+import { book6sect284 } from "./specialSections/book6sect284";
+import { book6sect340 } from "./specialSections/book6sect340";
+import { book9sect91 } from "./specialSections/book9sect91";
 
 /**
  * Engine to render and run gamebook mechanics rules
@@ -21,25 +55,25 @@ export const mechanicsEngine = {
     mechanicsUIURL: "views/mechanicsEngine.html",
 
     /** The rule to run after combats */
-    onAfterCombatsRule: null,
+    onAfterCombatsRule: null as Element,
 
     /** The rule to run after elude combats */
-    onEludeCombatsRule: null,
+    onEludeCombatsRule: null as Element,
 
     /** The rule to run after some inventory event */
-    onInventoryEventRule: null,
+    onInventoryEventRule: null as Element,
 
     /** Rules to execute after some combat turn */
-    onAfterCombatTurns: [],
+    onAfterCombatTurns: [] as Element[],
 
     /** Rules for events on some choice is selected */
-    onChoiceSelected: [],
+    onChoiceSelected: [] as Element[],
 
     /** The rule to run after some object used */
-    onObjectUsedRule: null,
+    onObjectUsedRule: null as Element,
 
     /** The rule to execute when the action button of a number picker is clicked */
-    onNumberPickerChoosed: null,
+    onNumberPickerChoosed: null as Element,
 
     /************************************************************/
     /**************** MAIN FUNCTIONS ****************************/
@@ -49,7 +83,7 @@ export const mechanicsEngine = {
      * Starts the mechanics UI download
      * @return The deferred object for the download
      */
-    downloadMechanicsUI() {
+    async downloadMechanicsUI() {
         // TODO: This is ugly. The mechanicsEngine.html load should be
         // TODO: handled always by views object
 
@@ -59,18 +93,14 @@ export const mechanicsEngine = {
         if (cachedView) {
             mechanicsEngine.$mechanicsUI = $(cachedView).find("#mechanics-container");
             // Return a resolved promise
-            const dfd = jQuery.Deferred();
-            dfd.resolve();
-            return dfd.promise();
+            return;
         }
 
-        return $.ajax({
+        const data = <string> await $.ajax({
             url: mechanicsEngine.mechanicsUIURL,
             dataType: "html"
-        })
-            .done((data) => {
-                mechanicsEngine.$mechanicsUI = $(data).filter("#mechanics-container");
-            });
+        });
+        mechanicsEngine.$mechanicsUI = $(data).filter("#mechanics-container");
     },
 
     /**
@@ -78,7 +108,7 @@ export const mechanicsEngine = {
      * @param tagId The tag id to get
      * @returns {jQuery} The translated tag
      */
-    getMechanicsUI(tagId: string): any {
+    getMechanicsUI(tagId: string) {
         const $tag = mechanicsEngine.$mechanicsUI.find("#" + tagId).clone();
         if ($tag.length === 0) {
             mechanicsEngine.debugWarning(tagId + " tag not found");
@@ -147,7 +177,7 @@ export const mechanicsEngine = {
      * run the rules. Random table increments are stored on the UI, and they are accumulative. So if rules are re-executed
      * without refresh the section, it can be needed
      */
-    runSectionRules(resetRandomTableIncrements: boolean = false) {
+    runSectionRules(resetRandomTableIncrements = false) {
 
         if (resetRandomTableIncrements) {
             randomMechanics.resetRandomTableIncrements();
@@ -169,7 +199,7 @@ export const mechanicsEngine = {
      * @param onlyCombatRules True to apply only "combat" rules
      * @param combatToApply Only applies if onlyCombatRules is true. Single combat where to apply the combat rules
      */
-    runGlobalRules(onlyCombatRules: boolean = false, combatToApply: Combat = null) {
+    runGlobalRules(onlyCombatRules = false, combatToApply: Combat = null) {
 
         for (const id of state.sectionStates.globalRulesIds) {
             const $globalRule = state.mechanics.getGlobalRule(id);
@@ -215,7 +245,7 @@ export const mechanicsEngine = {
      * @param fromUI True if the event was fired from the UI
      * @param o Only applies if fromUI is true. The object picked / droped
      */
-    fireInventoryEvents(fromUI: boolean = false, o: Item = null) {
+    fireInventoryEvents(fromUI = false, o: Item = null) {
 
         // Render object tables
         mechanicsEngine.showAvailableObjects();
@@ -234,7 +264,7 @@ export const mechanicsEngine = {
             if (mechanicsEngine.checkReRenderAfterInventoryEvent(o)) {
                 // Re-render the section
                 console.log("Re-rendering the section due to rules re-execution");
-                gameController.loadSection(state.sectionStates.currentSection, false,
+                gameController.getInstance().loadSection(state.sectionStates.currentSection, false,
                     window.pageYOffset);
             }
         }
@@ -453,7 +483,7 @@ export const mechanicsEngine = {
             }
 
             // Pick the object
-            if (!actionChartController.pick(objectId, false)) {
+            if (!actionChartController.getInstance().pick(objectId, false)) {
                 // The object has not been picked (ex. full backpack)
                 // Add the object to the section
                 sectionState.addObjectToSection(objectId);
@@ -472,15 +502,15 @@ export const mechanicsEngine = {
 
         // Add to the action chart
         if (cls === Item.MEAL ) {
-            actionChartController.increaseMeals(count);
+            actionChartController.getInstance().increaseMeals(count);
         } else if (cls === Item.ARROW) {
-            actionChartController.increaseArrows(count);
+            actionChartController.getInstance().increaseArrows(count);
         } else if (cls === Item.MONEY) {
             // TODO: We should store the amount of each currency. Unsupported
             // Exchange to Gold Crows
             count = Currency.toGoldCrowns(count, $rule.attr("currency"));
             const excessToKaiMonastry = mechanicsEngine.getBooleanProperty($rule, "excessToKaiMonastry", false);
-            actionChartController.increaseMoney(count, false, excessToKaiMonastry);
+            actionChartController.getInstance().increaseMoney(count, false, excessToKaiMonastry);
         } else {
             mechanicsEngine.debugWarning("Pick rule with no objectId / class");
         }
@@ -507,7 +537,7 @@ export const mechanicsEngine = {
      */
     test(rule: Element) {
         const $rule = $(rule);
-        let conditionStatisfied = this.isTestConditionStatisfied($rule);        
+        let conditionStatisfied = mechanicsEngine.isTestConditionStatisfied($rule);        
 
         // Check if the test should be inversed
         if ($rule.attr("not") === "true") {
@@ -545,7 +575,6 @@ export const mechanicsEngine = {
         }
 
         // Check objects
-        let i: number;
         const objectIdsToTest = mechanicsEngine.getArrayProperty($rule, "hasObject");
         for (const objectId of objectIdsToTest) {
             if (!state.mechanics.getObject(objectId)) {
@@ -748,7 +777,7 @@ export const mechanicsEngine = {
 
         // Object price (optional)
         const priceValue = $(rule).attr("price");
-        let price: number = 0;
+        let price = 0;
         if (priceValue) {
             price = ExpressionEvaluator.evalInteger(priceValue);
         }
@@ -824,8 +853,8 @@ export const mechanicsEngine = {
         // Other things (money / meals / special items ...)
         const cls = $rule.attr("class");
         if (cls) {
-            let objectIds: string[] = [];
-            let except: string[] = mechanicsEngine.getArrayProperty($rule, "except");
+            let objectIds = new Array<string>();
+            const except = mechanicsEngine.getArrayProperty($rule, "except");
 
             if (cls === Item.SPECIAL) {
                 objectIds = state.actionChart.getSpecialItemsIds();
@@ -877,7 +906,7 @@ export const mechanicsEngine = {
         } else {
             if (combatIndex >= sectionState.combats.length) {
                 mechanicsEngine.debugWarning('Rule "combat": Combat with index ' +
-                    combatIndex + " not found");
+                    combatIndex.toString() + " not found");
                 return;
             }
             combat = sectionState.combats[combatIndex];
@@ -1111,7 +1140,7 @@ export const mechanicsEngine = {
         const increase = ExpressionEvaluator.evalInteger($(rule).attr("count"));
         const toast = mechanicsEngine.getBooleanProperty($(rule), "toast", true);
         const permanent = mechanicsEngine.getBooleanProperty($(rule), "permanent", false);
-        actionChartController.increaseEndurance(increase, toast, permanent);
+        actionChartController.getInstance().increaseEndurance(increase, toast, permanent);
 
         state.sectionStates.markRuleAsExecuted(rule);
     },
@@ -1129,7 +1158,7 @@ export const mechanicsEngine = {
 
         const increase = ExpressionEvaluator.evalInteger($rule.attr("count"));
 
-        actionChartController.increaseCombatSkill(increase, mechanicsEngine.getBooleanProperty($rule, "toast", true));
+        actionChartController.getInstance().increaseCombatSkill(increase, mechanicsEngine.getBooleanProperty($rule, "toast", true));
 
         state.sectionStates.markRuleAsExecuted(rule);
     },
@@ -1137,8 +1166,8 @@ export const mechanicsEngine = {
     /**
      * Player death rule
      */
-    death(rule: Element) {
-        actionChartController.increaseEndurance(-state.actionChart.currentEndurance, true);
+    death() {
+        actionChartController.getInstance().increaseEndurance(-state.actionChart.currentEndurance, true);
     },
 
     /** Have a meal rule */
@@ -1184,7 +1213,7 @@ export const mechanicsEngine = {
         const $rule = $(rule);
 
         // Object ids dropped on this rule execution
-        let droppedObjects: ActionChartItem[] = [];
+        let droppedObjects = new Array<ActionChartItem>();
 
         // Track dropped arrows
         const originalArrows = state.actionChart.arrows;
@@ -1194,8 +1223,9 @@ export const mechanicsEngine = {
         dropLoop:
         for (const objectId of mechanicsEngine.getArrayProperty($rule, "objectId")) {
             let countDrop = 0;
+            let droppedItem: boolean | ActionChartItem;
             do {
-                const droppedItem = actionChartController.drop(objectId);
+                droppedItem = actionChartController.getInstance().drop(objectId);
                 if (droppedItem) {
                     if (droppedItem instanceof ActionChartItem) {
                         droppedObjects.push(droppedItem);
@@ -1213,7 +1243,7 @@ export const mechanicsEngine = {
                     // If no item dropped at all, check the next item
                     break;
                 }
-            } while(true);
+            } while(droppedItem);
         }
 
         // Drop backpack item slots by its index (1-based index)
@@ -1254,7 +1284,7 @@ export const mechanicsEngine = {
             // Execute only once
             return;
         }
-        actionChartController.setSelectedWeapon($(rule).attr("objectId"));
+        actionChartController.getInstance().setSelectedWeapon($(rule).attr("objectId"));
         state.sectionStates.markRuleAsExecuted(rule);
     },
 
@@ -1326,7 +1356,7 @@ export const mechanicsEngine = {
 
         // Get the restore point
         const restorePoint = $rule.attr("restorePoint");
-        const inventoryStateObject: any = state.sectionStates.otherStates[restorePoint];
+        const inventoryStateObject = <InventoryState> state.sectionStates.otherStates[restorePoint];
         if (!inventoryStateObject) {
             // Sometimes it's OK if the restore point does not exist, so don't be so expressive
             // mechanicsEngine.debugWarning('restorePoint ' + restorePoint + ' not found!');
@@ -1339,7 +1369,7 @@ export const mechanicsEngine = {
         const restoreWeapons = mechanicsEngine.getBooleanProperty($rule, "restoreWeapons", true);
 
         // Restore objects
-        actionChartController.restoreInventoryState(inventoryState, restoreWeapons);
+        actionChartController.getInstance().restoreInventoryState(inventoryState, restoreWeapons);
 
         // Save the current inventory state, modified by restoreInventoryState
         state.sectionStates.otherStates[restorePoint] = inventoryState.toObject();
@@ -1393,7 +1423,7 @@ export const mechanicsEngine = {
      * Move to other book section
      */
     goToSection(rule: Element) {
-        gameController.loadSection($(rule).attr("section"), true);
+        gameController.getInstance().loadSection($(rule).attr("section"), true);
         // To avoid continuing executing rules, throw an exception
         throw "Jumped to a new section, rules execution interrupted " +
             "(This exception is not really an error)";
@@ -1438,10 +1468,10 @@ export const mechanicsEngine = {
     /**
      * Add a button to access to the Kai monastery stored objects
      */
-    kaiMonasteryStorage(rule: Element) {
+    kaiMonasteryStorage() {
         const $tag = mechanicsEngine.getMechanicsUI("mechanics-kaimonasterystorage");
         gameView.appendToSection($tag, "afterChoices");
-        $tag.find("button").click( (e: Event) => {
+        $tag.find("button").on("click", (e) => {
             e.preventDefault();
             // Move to the fake section for Kai monastery
             state.sectionStates.currentSection = Book.KAIMONASTERY_SECTION;
@@ -1479,7 +1509,7 @@ export const mechanicsEngine = {
     /**
      * Fire the inventory event
      */
-    runInventoryEvent(rule: Element) {
+    runInventoryEvent() {
         mechanicsEngine.fireInventoryEvents();
     },
 
@@ -1523,7 +1553,7 @@ export const mechanicsEngine = {
         // Use only the first one
         for (const objectId of mechanicsEngine.getArrayProperty($rule , "objectId")) {
             if (state.actionChart.hasObject(objectId)) {
-                actionChartController.use(objectId, true, -1, true, applyEffect);
+                actionChartController.getInstance().use(objectId, true, -1, true, applyEffect);
                 break;
             }
         }
@@ -1549,8 +1579,8 @@ export const mechanicsEngine = {
             return;
         }
 
-        actionChartController.drop("allspecialgrdmaster");
-        kaimonasteryController.removeSpecialGrandMaster();
+        actionChartController.getInstance().drop("allspecialgrdmaster");
+        kaimonasteryController.getInstance().removeSpecialGrandMaster();
 
         state.sectionStates.markRuleAsExecuted(rule);
     },
@@ -1563,27 +1593,27 @@ export const mechanicsEngine = {
         book2sect238.run(rule);
     },
 
-    book2sect308(rule: Element) {
+    book2sect308() {
         book2sect308.run();
     },
 
-    book3sect88(rule: Element) {
+    book3sect88() {
         book3sect88.run();
     },
 
-    book6sect26(rule: Element) {
+    book6sect26() {
         book6sect26.run();
     },
 
-    book6sect284(rule: Element) {
+    book6sect284() {
         book6sect284.run();
     },
 
-    book6sect340(rule: Element) {
+    book6sect340() {
         book6sect340.run();
     },
 
-    book9sect91(rule: Element) {
+    book9sect91() {
         book9sect91.run();
     },
 
@@ -1760,7 +1790,7 @@ export const mechanicsEngine = {
             $("#mechanics-restart").on("click", (e) => {
                 e.preventDefault();
                 if (confirm(translations.text("confirmRestart"))) {
-                    setupController.restartBook();
+                    setupController.getInstance().restartBook();
                 }
             });
 
@@ -1794,7 +1824,7 @@ export const mechanicsEngine = {
         }
         sectionState.healingExecuted = true;
         if (state.actionChart.currentEndurance < state.actionChart.getMaxEndurance()) {
-            actionChartController.increaseEndurance(+1, true);
+            actionChartController.getInstance().increaseEndurance(+1, true);
         }
     },
 
@@ -1835,7 +1865,7 @@ export const mechanicsEngine = {
      * will be search
      * @return The text
      */
-    getRuleText(rule: Element | JQuery<HTMLElement>, propertyName: string = "text"): string {
+    getRuleText(rule: Element | JQuery<HTMLElement>, propertyName = "text"): string {
         const $rule = $(rule);
         let text = $rule.attr(propertyName);
         if (!text) {
@@ -1849,7 +1879,7 @@ export const mechanicsEngine = {
      * @param {XmlNode} rule The root rule
      * @param {function(XmlNode)} callback The function to execute
      */
-    enumerateSectionRules(rule: Element, callback: any) {
+    enumerateSectionRules(rule: Element, callback: (rule: Element) => string) {
 
         let result = callback(rule);
         if (result === "finish") {
@@ -1878,10 +1908,10 @@ export const mechanicsEngine = {
     dropActionChartSlots($rule: JQuery<Element>, property: string, objectsArray: ActionChartItem[]): ActionChartItem[] {
 
         // Indices to drop
-        const slotIndices: number[] = [];
+        const slotIndices = new Array<number>();
         for (const itemSlotTxt of mechanicsEngine.getArrayProperty($rule, property)) {
 
-            let slotIndex;
+            let slotIndex: number;
             if (itemSlotTxt === "last") {
                 slotIndex = objectsArray.length;
             } else {
@@ -1895,12 +1925,12 @@ export const mechanicsEngine = {
         }
 
         // Drop objects
-        return actionChartController.dropItemIndicesList(objectsArray, slotIndices);
+        return actionChartController.getInstance().dropItemIndicesList(objectsArray, slotIndices);
     },
 
     appendToInventoryState(newRestorePoint: InventoryState, restorePointId: string) {
 
-        const currentRestorePointObject: any = state.sectionStates.otherStates[restorePointId];
+        const currentRestorePointObject = <InventoryState> state.sectionStates.otherStates[restorePointId];
         if (currentRestorePointObject) {
             // Join both
             newRestorePoint.addInventoryToThis(InventoryState.fromObject(currentRestorePointObject));

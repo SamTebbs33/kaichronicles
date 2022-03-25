@@ -1,4 +1,6 @@
-import { translations, routing, mainMenuController } from "..";
+import { mainMenuController } from "../controller/mainMenuController";
+import { routing } from "../routing";
+import { translations } from "./viewsUtils/translations";
 
 export const mainMenuView = {
 
@@ -22,7 +24,7 @@ export const mainMenuView = {
         });
         $("#menu-color-theme").on("click", (e) => {
             e.preventDefault();
-            mainMenuController.changeColor();
+            void mainMenuController.getInstance().changeColor();
         });
         $("#menu-faq").on("click", (e) => {
             e.preventDefault();

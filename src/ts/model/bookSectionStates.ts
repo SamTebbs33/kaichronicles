@@ -1,4 +1,7 @@
-import { SectionState, Section, Combat, CombatTurn, state } from "..";
+import { Combat } from "./combat";
+import { CombatTurn } from "./combatTurn";
+import { Section } from "./section";
+import { SectionState } from "./sectionState";
 
 /**
  * Class to store book sections states
@@ -19,7 +22,7 @@ export class BookSectionStates {
     /**
      * Hunting discipline enabled?
      */
-    public huntEnabled: boolean = true;
+    public huntEnabled = true;
 
     /**
      * Other states.
@@ -35,7 +38,7 @@ export class BookSectionStates {
     /**
      * Global rules to run on each section
      */
-    public globalRulesIds = [];
+    public globalRulesIds = new Array<string>();
 
     /**
      * Get a section state. If it does not exists, it will be created
@@ -98,7 +101,7 @@ export class BookSectionStates {
         }
     }
 
-    public fromStateObject(stateObject) {
+    public fromStateObject(stateObject: BookSectionStates) {
 
         this.currentSection = stateObject.currentSection;
         this.huntEnabled = stateObject.huntEnabled;
@@ -110,13 +113,13 @@ export class BookSectionStates {
             this.sectionStates[ <string> sectionId ] = sectionState;
 
             // Restore combats
-            const combats = [];
+            const combats = new Array<Combat>();
             $.each( sectionState.combats , ( index , combat ) => {
                 const rightCombat = $.extend( new Combat( "" , 0 , 0 ) , combat );
                 combats.push( rightCombat );
 
                 // Restore combat turns
-                const turns = [];
+                const turns = new Array<CombatTurn>();
                 $.each( rightCombat.turns , ( turnIndex , turn ) => {
                     turns.push( $.extend( new CombatTurn(null, 0, false, false) , turn ) );
                 });

@@ -14,23 +14,12 @@ interface JQuery {
     initializeValue(): void;
 }
 
-// index.html:
-declare const ENVIRONMENT: string;
-
-// FileSaver.js
-declare const saveAs: any;
-
 // xmllint.js
 declare function validateXML(parms: any): string;
 
 // commons.ts:
 interface Array<T> {
     removeValue( value: T ): boolean;
-
-    /**
-     * Returns a shallow clone of this array
-     */
-    clone(): T[];
 
     /**
      * Returns a deep clone of this array.
@@ -46,12 +35,4 @@ interface String {
     escapeRegExp(): string;
     unescapeHtml(): string;
     getUrlParameter(sParam: string): string;
-}
-
-// Mixed:
-interface Window {
-    
-    // commons.ts:
-    getUrlParameter( parmName: string ): string;
-
 }

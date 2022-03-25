@@ -1,4 +1,6 @@
-import { template, App, mechanicsEngine } from ".";
+import { Controller, ControllerFactory } from "./controller/controllerFactory";
+import { mechanicsEngine } from "./controller/mechanics/mechanicsEngine";
+import { template } from "./template";
 
 /**
  * The routes handler.
@@ -17,16 +19,15 @@ export const routing = {
      * @param {object} parameters Hash with parameters for the route. It can be null
      * @returns True if the redirection can be done. False otherwise
      */
-    redirect(route: string, parameters: object = null): boolean {
+    redirect(route: string, parameters: object = null) {
         try {
-
             // Remove hash
             route = routing.normalizeHash(route);
 
             // Add parameters
-            if ( parameters ) {
-                const txtParms = routing.objectToUrlParms(parameters );
-                if ( txtParms ) {
+            if (parameters) {
+                const txtParms = routing.objectToUrlParms(parameters);
+                if (txtParms) {
                     route += "?" + txtParms;
                 }
             }
@@ -35,23 +36,21 @@ export const routing = {
 
             // This will fire the onHashChange callback:
             location.hash = route;
-
         } catch (e) {
             mechanicsEngine.debugWarning(e);
             return false;
         }
-
     },
 
     /** Setup the routing events and redirect to the initial action */
     setup() {
 
         // Hash change events
-        $(window).on("hashchange", routing.onHashChange );
+        $(window).on("hashchange", routing.onHashChange.bind(this));
 
         // Call the initial controller
         let initialHash = routing.normalizeHash(location.hash);
-        if ( initialHash === "" ) {
+        if (initialHash === "") {
             initialHash = "mainMenu";
         }
         routing.redirect(initialHash);
@@ -65,10 +64,10 @@ export const routing = {
      */
     getControllerName(): string {
         try {
-            let route = routing.normalizeHash( location.hash );
+            let route = routing.normalizeHash(location.hash);
             const idxParms = route.indexOf("?");
-            if ( idxParms >= 0 ) {
-                route = route.substring( 0 , idxParms );
+            if (idxParms >= 0) {
+                route = route.substring(0, idxParms);
             }
 
             return route + "Controller";
@@ -79,23 +78,16 @@ export const routing = {
     },
 
     /** Get the the controller object by its name */
-    getController(controllerName: string) {
-        try {
-            if ( !controllerName ) {
-                return null;
-            }
-
-            // tslint:disable-next-line: no-eval
-            return eval( App.PACKAGE_NAME + "." + controllerName );
-        } catch (e) {
-            mechanicsEngine.debugWarning(e);
+    getController(controllerName: string): Controller {
+        if (!controllerName) {
             return null;
         }
+        return ControllerFactory.getController(routing.getControllerName());
     },
 
     /** Get the current controller object */
     getCurrentController() {
-        return routing.getController( routing.getControllerName() );
+        return routing.getController(routing.getControllerName());
     },
 
     /**
@@ -105,7 +97,7 @@ export const routing = {
      */
     normalizeHash(hash: string) {
         hash = hash.trim();
-        if ( hash.startsWith("#") ) {
+        if (hash.startsWith("#")) {
             hash = hash.substring(1);
         }
         return hash;
@@ -116,13 +108,14 @@ export const routing = {
      */
     onHashChange() {
 
-        let controller;
+        let controller: Controller;
 
         // Notify the previous controler that we leave
         try {
-            if ( routing.lastControllerName ) {
+            if (routing.lastControllerName) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 controller = routing.getController(routing.lastControllerName);
-                if ( controller && controller.onLeave ) {
+                if (controller && controller.onLeave) {
                     // console.log('Leaving ' + routing.lastControllerName);
                     controller.onLeave();
                 }
@@ -134,9 +127,10 @@ export const routing = {
 
         // Move to the new controller
         try {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             controller = routing.getCurrentController();
-            if ( !controller ) {
-                mechanicsEngine.debugWarning("Undefined controller: " + routing.getControllerName() );
+            if (!controller) {
+                mechanicsEngine.debugWarning("Undefined controller: " + routing.getControllerName());
                 // throw new Error("Undefined controller: " + routing.getControllerName());
             } else {
                 // Store the new hash
@@ -176,9 +170,9 @@ export const routing = {
     getHashParameter(paramName: string): string {
 
         let hash = routing.normalizeHash(location.hash);
-        const idx = hash.indexOf( "?" );
-        if ( idx >= 0 ) {
-            hash = hash.substring( idx + 1 );
+        const idx = hash.indexOf("?");
+        if (idx >= 0) {
+            hash = hash.substring(idx + 1);
         }
         return hash.getUrlParameter(paramName);
     },

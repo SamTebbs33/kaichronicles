@@ -3,9 +3,12 @@
 // Setup
 /////////////////////////////////////////////////////////////////////////////////
 
-import { state, Book, projectAon, CombatMechanics } from "../..";
 import { GameDriver } from "../gameDriver";
-import { By } from "selenium-webdriver";
+import { By, WebElement } from "selenium-webdriver";
+import { state } from "../../state";
+import { Book } from "../../model/book";
+import { CombatMechanics } from "../../controller/mechanics/combatMechanics";
+import { projectAon } from "../../model/projectAon";
 
 GameDriver.globalSetup();
 
@@ -133,16 +136,17 @@ async function noEludeErrors() {
 }
 
 async function doMeals() {
-    while (true) {
-        const meal = await driver.getElementByCss("div.mechanics-meal-ui");
+    let meal: WebElement;
+    do {
+        meal = await driver.getElementByCss("div.mechanics-meal-ui");
         if (!meal) {
-            return;
+            break;
         }
         // Select do not eat
         await ( await meal.findElement(By.css("input[value='doNotEat']")) ).click();
         // Click ok
         await driver.cleanClickAndWait( meal.findElement(By.css("button")) );
-    }
+    } while (meal);
 }
 
 async function noMealErrors() {

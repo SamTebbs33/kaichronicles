@@ -1,4 +1,8 @@
-import { state, mechanicsEngine, CombatTurn, Combat, template } from "../../..";
+import { Combat } from "../../../model/combat";
+import { CombatTurn } from "../../../model/combatTurn";
+import { state } from "../../../state";
+import { template } from "../../../template";
+import { mechanicsEngine } from "../mechanicsEngine";
 
 /** Bow tournament final */
 export const book6sect26 = {
@@ -8,8 +12,10 @@ export const book6sect26 = {
         // Replace the combat turns generation:
         const sectionState = state.sectionStates.getSectionState();
         for (const combat of sectionState.combats) {
-            combat.nextTurnAsync = book6sect26.nextTurnAsync;
-            combat.applyTurn = book6sect26.applyTurn;
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            combat.nextTurnAsync = book6sect26.nextTurnAsync.bind(combat);
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            combat.applyTurn = book6sect26.applyTurn.bind(combat);
         }
 
         // Add UI
@@ -19,18 +25,16 @@ export const book6sect26 = {
     },
 
     /** Replacement for combat turns generation */
-    nextTurnAsync(): JQueryPromise<CombatTurn> {
-        return Combat.prototype.nextTurnAsync.call(this)
-        .then((turn: CombatTurn) => {
-            // Do not remove EP to the player. Do a backup of the real loss at turn.loneWolfExtra
-            turn.loneWolfExtra = turn.loneWolf;
-            turn.loneWolf = turn.loneWolfBase = 0;
-            return jQuery.Deferred().resolve(turn).promise();
-        });
+    async nextTurnAsync(): Promise<CombatTurn> {
+        const turn = <CombatTurn> await Combat.prototype.nextTurnAsync.call(this)
+        // Do not remove EP to the player. Do a backup of the real loss at turn.loneWolfExtra
+        turn.loneWolfExtra = turn.loneWolf;
+        turn.loneWolf = turn.loneWolfBase = 0;
+        return turn;
     },
 
     /** Replacement for turns application */
-    applyTurn( turn: CombatTurn ) {
+    applyTurn(this: Combat, turn: CombatTurn ) {
         // Apply normal combat
         Combat.prototype.applyTurn.call(this, turn);
 
@@ -48,15 +52,15 @@ export const book6sect26 = {
         book6sect26.updatePlayerTargetPointsUI(false);
     },
 
-    getPlayerTargetPoints(): any {
-        const targetPoints = state.sectionStates.otherStates.book6sect26TargetPoints;
+    getPlayerTargetPoints(): number {
+        const targetPoints = <number> state.sectionStates.otherStates.book6sect26TargetPoints;
         if ( targetPoints === undefined || targetPoints === null ) {
             return 50;
         }
         return targetPoints;
     },
 
-    setPlayerTargetPoints( targetPoints: any ) {
+    setPlayerTargetPoints( targetPoints: number ) {
         state.sectionStates.otherStates.book6sect26TargetPoints = targetPoints;
     },
 

@@ -1,4 +1,7 @@
-import { Combat, combatTable, COMBATTABLE_DEATH, state, translations } from "..";
+import { state } from "../state";
+import { translations } from "../views/viewsUtils/translations";
+import { Combat } from "./combat";
+import { combatTable, COMBATTABLE_DEATH } from "./combatTable";
 import { BookSeriesId } from "./bookSeries";
 
 export class CombatTurn {
@@ -21,7 +24,7 @@ export class CombatTurn {
     /** Enemy EP base loss.
      * It can be a number or COMBATTABLE_DEATH
      */
-    public enemyBase: any;
+    public enemyBase: number;
 
     /** Enemy extra loss */
     public enemyExtra: number;
@@ -29,12 +32,12 @@ export class CombatTurn {
     /** The enemy total loss.
      * It can be a number or COMBATTABLE_DEATH
      */
-    public enemy: any;
+    public enemy: number;
 
     /** The player base loss.
      * It can be a number or COMBATTABLE_DEATH
      */
-    public loneWolfBase: any;
+    public loneWolfBase: number;
 
     /** Player extra loss */
     public loneWolfExtra: number;
@@ -42,13 +45,13 @@ export class CombatTurn {
     /** Player total loss.
      * It can be a number or COMBATTABLE_DEATH
      */
-    public loneWolf: any;
+    public loneWolf: number;
 
     /** Text with the player loss */
     public playerLossText: string;
 
     /** Helshezag used on this turn? */
-    public helshezagUsed: boolean = false;
+    public helshezagUsed = false;
 
     /**
      * Create a combat turn
@@ -179,20 +182,20 @@ export class CombatTurn {
      * Translate the loss
      * @param {string|number} loss It can be a number with the loss, or COMBATTABLE_DEATH
      */
-    public static translateLoss(loss: any): string {
+    public static translateLoss(loss: number): string {
         return loss === COMBATTABLE_DEATH ? translations.text( "deathLetter" ) : loss.toString();
     }
 
     /**
      * Get a text for a turn result
      */
-    public static lossText( base: any , multiplier: number, extra: number, finalLoss: any ): string {
+    public static lossText( base: number , multiplier: number, extra: number, finalLoss: number ): string {
         let loss = CombatTurn.translateLoss( base );
         if ( multiplier !== 1 ) {
-            loss = loss + " x " + multiplier;
+            loss = loss + " x " + multiplier.toString();
         }
         if ( extra !== 0 ) {
-            loss += " + " + ( - extra );
+            loss += " + " + ( - extra ).toString();
         }
         if ( multiplier !== 1 || extra !== 0 ) {
             loss += " = " + CombatTurn.translateLoss( finalLoss );
@@ -206,7 +209,7 @@ export class CombatTurn {
      * @param multiplier The multiplier (can have decimals)
      * @return {number|string} The final endurance loss
      */
-    public static applyMultiplier( enduranceLoss: any , multiplier: number ): any {
+    public static applyMultiplier( enduranceLoss: number , multiplier: number ): number {
 
         if ( multiplier === 0 ) {
             // Ensure no death

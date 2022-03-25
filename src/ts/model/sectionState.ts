@@ -1,4 +1,11 @@
-import { Combat, Mechanics, Item, state, ActionChart, ActionChartItem, mechanicsEngine } from "..";
+import { mechanicsEngine } from "../controller/mechanics/mechanicsEngine";
+import { GameState } from "../controller/mechanics/specialSections/book2sect238";
+import { state } from "../state";
+import { ActionChart } from "./actionChart";
+import { ActionChartItem } from "./actionChartItem";
+import { Combat } from "./combat";
+import { Item } from "./item";
+import { Mechanics } from "./mechanics";
 
 /**
  * Stores information about an object available to pick on a section
@@ -39,16 +46,16 @@ export class SectionState {
     /**
      * Objects on the section
      */
-    public objects: SectionItem[]  = [];
+    public objects = new Array<SectionItem>();
 
     /**
      * Sell prices on the section. Applies only on sections where you can
      * sell inventory objects.
      */
-    public sellPrices: SectionItem[] = [];
+    public sellPrices = new Array<SectionItem>();
 
     /** Combats on the section */
-    public combats: Combat[] = [];
+    public combats = new Array<Combat>();
 
     /** The combat has been eluded? */
     public combatEluded = false;
@@ -66,9 +73,9 @@ export class SectionState {
      * Number picker states for this section.
      * See numberPicker.js and numberPickerMechanics.ts
      */
-    public numberPickersState = {
-        actionFired: null
-    };
+    public numberPickersState = new Map<string, string | number | string[]>([
+        ["actionFired", null]
+    ])
 
     /**
      * Mark a rule as executed
@@ -76,12 +83,12 @@ export class SectionState {
      * @param executionState The state to associate with the execution. If it's null,
      * if will be set to true
      */
-    public markRuleAsExecuted( rule: Element, executionState: any = true ) {
-        if ( !executionState ) {
+    public markRuleAsExecuted(rule: Element, executionState: unknown = true) {
+        if (!executionState) {
             executionState = true;
         }
 
-        this.executedRules[ Mechanics.getRuleSelector(rule) ] = executionState;
+        this.executedRules[Mechanics.getRuleSelector(rule)] = executionState;
     }
 
     /**
@@ -89,11 +96,11 @@ export class SectionState {
      * @param rule Rule to check
      * @return The object associated with the execution. true if there was no result stored
      */
-    public ruleHasBeenExecuted(rule: Element): any {
+    public ruleHasBeenExecuted(rule: Element): GameState | boolean {
         // TODO: This will fail if the XML changes. The rule should be searched
         // TODO: with all selectors on the sectionState.executedRules keys
         // TODO: If it's found, it's executed
-        return this.executedRules[ Mechanics.getRuleSelector(rule) ];
+        return this.executedRules[Mechanics.getRuleSelector(rule)];
     }
 
     /**
@@ -103,16 +110,16 @@ export class SectionState {
      * @return The objects on this section
      */
     public getSectionObjects(type: string = null): Item[] {
-        const items: Item[] = [];
-        for ( const sectionItem of this.objects) {
+        const items = new Array<Item>();
+        for (const sectionItem of this.objects) {
 
-            if ( sectionItem.id === Item.MONEY ) {
+            if (sectionItem.id === Item.MONEY) {
                 // Money if not really an object. It's stored like one for mechanics needs
                 continue;
             }
 
-            const i = state.mechanics.getObject( sectionItem.id );
-            if ( !type || i.type === type ) {
+            const i = state.mechanics.getObject(sectionItem.id);
+            if (!type || i.type === type) {
                 items.push(i);
             }
         }
@@ -133,10 +140,10 @@ export class SectionState {
      * Return the weapons and weapon special object on the section
      */
     public getWeaponObjects(): Item[] {
-        const weapons: Item[] = [];
-        for ( const i of this.getSectionObjects() ) {
-            if ( i.isWeapon() ) {
-                weapons.push( i );
+        const weapons = new Array<Item>();
+        for (const i of this.getSectionObjects()) {
+            if (i.isWeapon()) {
+                weapons.push(i);
             }
         }
         return weapons;
@@ -147,23 +154,23 @@ export class SectionState {
      * Returns 'eluded' if all combats are eluded, and Lone Wolf is not death.
      * Returns false if there are pending combats, or Lone Wolf is death
      */
-    public areAllCombatsFinished(actionChart: ActionChart): string|boolean {
+    public areAllCombatsFinished(actionChart: ActionChart): string | boolean {
 
-        if ( actionChart.currentEndurance <= 0 ) {
+        if (actionChart.currentEndurance <= 0) {
             // LW death
             return false;
         }
 
-        if ( this.combats.length === 0 ) {
+        if (this.combats.length === 0) {
             return "finished";
         }
 
-        if ( this.combatEluded ) {
+        if (this.combatEluded) {
             return "eluded";
         }
 
         for (const combat of this.combats) {
-            if ( !combat.isFinished() ) {
+            if (!combat.isFinished()) {
                 return false;
             }
         }
@@ -175,7 +182,7 @@ export class SectionState {
      */
     public areAllCombatsWon(): boolean {
         for (const combat of this.combats) {
-            if ( combat.endurance > 0 ) {
+            if (combat.endurance > 0) {
                 return false;
             }
         }
@@ -186,12 +193,12 @@ export class SectionState {
      * Returns true if there is some combat active
      */
     public someCombatActive(): boolean {
-        if ( this.combatEluded ) {
+        if (this.combatEluded) {
             return false;
         }
 
         for (const combat of this.combats) {
-            if ( !combat.isFinished() ) {
+            if (!combat.isFinished()) {
                 return true;
             }
         }
@@ -201,9 +208,9 @@ export class SectionState {
     /**
      * Return true if any of the combats has, at least, one turn made.
      */
-    public areCombatsStarted(): Boolean {
+    public areCombatsStarted(): boolean {
         for (const combat of this.combats) {
-            if ( combat.turns.length > 0) {
+            if (combat.turns.length > 0) {
                 return true;
             }
         }
@@ -213,9 +220,9 @@ export class SectionState {
     /**
      * Return false if any of the combats don't allows prior usage of potions.
      */
-    public areCombatsPotionsAllowed(): Boolean {
+    public areCombatsPotionsAllowed(): boolean {
         for (const combat of this.combats) {
-            if ( !combat.allowPotions) {
+            if (!combat.allowPotions) {
                 return false;
             }
         }
@@ -227,10 +234,10 @@ export class SectionState {
      * @param {string} who If is 'enemy' we will calculate the enemy loss. Otherwise, we will
      * calculate the player loss
      */
-    public combatsEnduranceLost( who: string ): number {
+    public combatsEnduranceLost(who: string): number {
         let lost = 0;
-        for ( let i = 0, len = this.combats.length; i < len; i++) {
-            if ( who === "enemy") {
+        for (let i = 0, len = this.combats.length; i < len; i++) {
+            if (who === "enemy") {
                 lost += this.combats[i].enemyEnduranceLost();
             } else {
                 lost += this.combats[i].playerEnduranceLost();
@@ -244,7 +251,7 @@ export class SectionState {
      */
     public combatsDuration(): number {
         let duration = 0;
-        for ( let i = 0, len = this.combats.length; i < len; i++) {
+        for (let i = 0, len = this.combats.length; i < len; i++) {
             duration += this.combats[i].turns.length;
         }
         return duration;
@@ -255,7 +262,7 @@ export class SectionState {
      * @param enabled True to enable combats. False to disable them
      */
     public setCombatsEnabled(enabled: boolean) {
-        for ( let i = 0, len = this.combats.length; i < len; i++) {
+        for (let i = 0, len = this.combats.length; i < len; i++) {
             this.combats[i].disabled = !enabled;
         }
     }
@@ -265,7 +272,7 @@ export class SectionState {
      * @param aChartItem Action Chart item information
      * @param arrowCount Only applies if id = Item.QUIVER (number of arrows on the quiver)
      */
-    public addActionChartItemToSection(aChartItem: ActionChartItem, arrowCount: number = 0) {
+    public addActionChartItemToSection(aChartItem: ActionChartItem, arrowCount = 0) {
         this.addObjectToSection(aChartItem.id, 0, false, arrowCount, false, aChartItem.usageCount);
     }
 
@@ -279,11 +286,11 @@ export class SectionState {
      * @param useOnSection The object is allowed to be used on the section (not picked object)?
      * @param usageCount Number of remaining object uses. If no specified or < 0, the default Item usageCount will be used
      */
-    public addObjectToSection(objectId: string , price: number = 0, unlimited: boolean = false, count: number = 0 ,
-                              useOnSection: boolean = false, usageCount: number = -1) {
+    public addObjectToSection(objectId: string, price = 0, unlimited = false, count = 0,
+        useOnSection = false, usageCount = -1) {
 
         // Special cases:
-        if ( objectId === Item.MONEY ) {
+        if (objectId === Item.MONEY) {
             // Try to increase the current money amount / arrows on the section:
             const moneyIndex = this.getObjectIndex(objectId);
             if (moneyIndex >= 0) {
@@ -307,7 +314,7 @@ export class SectionState {
             id: objectId,
             price,
             unlimited,
-            count: (objectId === Item.QUIVER || objectId === Item.ARROW || objectId === Item.MONEY || price > 0 ? count : 0 ),
+            count: (objectId === Item.QUIVER || objectId === Item.ARROW || objectId === Item.MONEY || price > 0 ? count : 0),
             useOnSection,
             usageCount
         });
@@ -320,9 +327,9 @@ export class SectionState {
      * @param count Count to decrease. Only applies if the object is 'money'
      * @param index Object index to remove. If not specified or < 0, the first object with the gived id will be removed
      */
-    public removeObjectFromSection(objectId: string, price: number, count: number = -1, index: number = -1) {
+    public removeObjectFromSection(objectId: string, price: number, count = -1, index = -1) {
         // Be sure price is not null
-        if ( !price ) {
+        if (!price) {
             price = 0;
         }
 
@@ -333,19 +340,19 @@ export class SectionState {
 
         if (index >= 0 && index < this.objects.length) {
             let removeObject = true;
-            if ( ( objectId === Item.MONEY || objectId === Item.ARROW ) && count >= 0 && this.objects[index].count > count ) {
+            if ((objectId === Item.MONEY || objectId === Item.ARROW) && count >= 0 && this.objects[index].count > count) {
                 // Still money / arrows available:
                 this.objects[index].count -= count;
                 removeObject = false;
             }
 
-            if ( removeObject ) {
+            if (removeObject) {
                 this.objects.splice(index, 1);
             }
             return;
         }
 
-        mechanicsEngine.debugWarning( "Object to remove from section not found :" + objectId + " " + price );
+        mechanicsEngine.debugWarning("Object to remove from section not found :" + objectId.toString() + " " + price.toString());
     }
 
     /**
@@ -353,14 +360,14 @@ export class SectionState {
      * Returns -1 if there are no combats or not turns yet
      */
     public getLastRandomCombatTurn(): number {
-        if ( this.combats.length === 0 ) {
+        if (this.combats.length === 0) {
             return -1;
         }
         const combat = this.combats[0];
-        if ( combat.turns.length === 0 ) {
+        if (combat.turns.length === 0) {
             return -1;
         }
-        return combat.turns[ combat.turns.length - 1].randomValue;
+        return combat.turns[combat.turns.length - 1].randomValue;
     }
 
     /**
@@ -368,7 +375,7 @@ export class SectionState {
      * It returns zero if there are no combats on the section
      */
     public getEnemyEndurance(): number {
-        if ( this.combats.length === 0 ) {
+        if (this.combats.length === 0) {
             return 0;
         }
         return this.combats[0].endurance;
@@ -379,7 +386,7 @@ export class SectionState {
      */
     public getAvailableMoney(): number {
         let moneyCount = 0;
-        for ( const o of this.objects ) {
+        for (const o of this.objects) {
             if (o.id === Item.MONEY) {
                 moneyCount += o.count;
             }
@@ -391,15 +398,15 @@ export class SectionState {
      * Add a combat skill bonus to the current section combats by an object usage.
      * @param combatSkillModifier The combat skill increase
      */
-    public combatSkillUsageModifier( combatSkillModifier: number ) {
+    public combatSkillUsageModifier(combatSkillModifier: number) {
         // Apply the modifier to current combats:
-        for ( const combat of this.combats ) {
+        for (const combat of this.combats) {
             combat.objectsUsageModifier += combatSkillModifier;
         }
     }
 
     /** Return true if the object is on the section */
-    public containsObject( objectId: string ): boolean {
+    public containsObject(objectId: string): boolean {
         return this.getObjectIndex(objectId) >= 0;
     }
 
@@ -409,16 +416,16 @@ export class SectionState {
      * @param price If specified and >= 0, the object price to search. If it's not specified the price will not be checked
      * @returns The object index in this.objects. -1 if the object was not found.
      */
-    private getObjectIndex(objectId: string, price: number = -1): number {
+    private getObjectIndex(objectId: string, price = -1): number {
         for (let i = 0; i < this.objects.length; i++) {
 
             // Be sure price is not null
             let currentPrice = this.objects[i].price;
-            if ( !currentPrice ) {
+            if (!currentPrice) {
                 currentPrice = 0;
             }
 
-            if ( this.objects[i].id === objectId && ( price < 0 || currentPrice === price ) ) {
+            if (this.objects[i].id === objectId && (price < 0 || currentPrice === price)) {
                 return i;
             }
         }

@@ -1,4 +1,8 @@
-import { Book, translations, mechanicsEngine, Section, state } from "..";
+import { mechanicsEngine } from "../controller/mechanics/mechanicsEngine";
+import { state } from "../state";
+import { translations } from "../views/viewsUtils/translations";
+import { Book } from "./book";
+import { Section } from "./section";
 
 /**
  * Item effect / usage description
@@ -99,10 +103,10 @@ export class Item {
      * Combat skill increment.
      * If it's a weapon, only when it's the current weapon. Otherwise, when the player carry the object
      */
-    public combatSkillEffect: number = 0;
+    public combatSkillEffect = 0;
 
     /** Endurance increment when the player carry the object */
-    public enduranceEffect: number = 0;
+    public enduranceEffect = 0;
 
     /** Usage effect */
     public usage: ItemEffect;
@@ -116,12 +120,12 @@ export class Item {
     /** Object ids that cannot be carried at same time with this object.
      * Empty array if there are no incompatibilities
      */
-    public incompatibleWith: string[] = [];
+    public incompatibleWith = new Array<string>();
 
     /**
      * True if the weapon is affected by Sun Lord Grand Weaponmastery bonus
      */
-    public grdWpnmstryBonus: boolean = true;
+    public grdWpnmstryBonus = true;
 
     /**
      * Game object information
@@ -132,7 +136,7 @@ export class Item {
     constructor(book: Book, $o: JQuery<Element>, objectId: string) {
 
         /** The object type ('special', 'object' or 'weapon' ) */
-        this.type = $o.prop("tagName");
+        this.type = <string>$o.prop("tagName");
         /** The object id */
         this.id = objectId;
 
@@ -277,14 +281,14 @@ export class Item {
      * Get information about the image
      * @param {jQuery} $o XML node for object
      */
-    private loadImageInfo($o: any) {
+    private loadImageInfo($o: JQuery<Element>) {
         const $image = $o.find("image");
         if ($image.length === 0) {
             return;
         }
 
         // Get the book number:
-        const candidateBookNumbers: number[] = [];
+        const candidateBookNumbers = new Array<number>();
         const txtBook: string = $image.attr("book");
         for (const txtBookNumber of txtBook.split("|")) {
             candidateBookNumbers.push(parseInt(txtBookNumber, 10));

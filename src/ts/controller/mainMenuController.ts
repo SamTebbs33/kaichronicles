@@ -1,36 +1,57 @@
-import { template, translations, views, mainMenuView, state, settingsController, Color } from "..";
+import { state, Color } from "../state";
+import { template } from "../template";
+import { views } from "../views";
+import { mainMenuView } from "../views/mainMenuView";
+import { translations } from "../views/viewsUtils/translations";
+import { Controller } from "./controllerFactory";
+import { settingsController } from "./settingsController";
 
 /**
  * The application menu controller
  */
-export const mainMenuController = {
+export class mainMenuController implements Controller {
+
+    private static instance: mainMenuController;
+
+    private constructor() {
+        // Set constructor private
+    }
+
+    onLeave() {
+        // Do Nothing
+    }
+
+    public static getInstance(): mainMenuController {
+        if(!this.instance) {
+            this.instance = new this()
+        }
+        return this.instance;
+    }
 
     /**
      * The game menu
      */
-    index() {
+    async index() {
         template.setNavTitle( translations.text("kaiChronicles") , "#mainMenu", true);
         template.showStatistics(false);
-        views.loadView("mainMenu.html").then(() => {
-            mainMenuView.setup();
+        await views.loadView("mainMenu.html")
+        mainMenuView.setup();
 
-            // Check if there is a current game
-            if ( !state.existsPersistedState() ) {
-                mainMenuView.hideContinueGame();
-            }
-
-        });
-    },
+        // Check if there is a current game
+        if ( !state.existsPersistedState() ) {
+            mainMenuView.hideContinueGame();
+        }
+    }
 
     /**
      * Change the current color theme
      */
-    changeColor() {
-        settingsController.changeColorTheme(state.color === Color.Light ? Color.Dark : Color.Light);
-        mainMenuController.index();
-    },
+    async changeColor() {
+        settingsController.getInstance().changeColorTheme(state.color === Color.Light ? Color.Dark : Color.Light);
+        await this.index();
+    }
 
     /** Return page */
     getBackController() { return "exitApp"; }
 
-};
+}

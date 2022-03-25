@@ -1,4 +1,8 @@
-import { state, translations, mechanicsEngine, actionChartController, Item } from "../..";
+import { actionChartController } from "../../controller/actionChartController";
+import { mechanicsEngine } from "../../controller/mechanics/mechanicsEngine";
+import { Item } from "../../model/item";
+import { state } from "../../state";
+import { translations } from "./translations";
 
 /**
  * Modal dialog to pick / drop money.
@@ -7,7 +11,7 @@ export class MoneyDialog {
 
     public static show(drop: boolean) {
 
-        MoneyDialog.setupDialog(drop);
+        MoneyDialog.setupDialog();
 
         // Update bounds and initial value
         if (drop) {
@@ -37,7 +41,7 @@ export class MoneyDialog {
             .modal("show");
     }
 
-    private static setupDialog(drop: boolean) {
+    private static setupDialog() {
 
         // If the dialog HTML do not exists, add it:
         if ($("#mechanics-moneydialog").length > 0) {
@@ -68,10 +72,10 @@ export class MoneyDialog {
         const moneyAmount = $moneyAmount.getNumber();
         if ($("#mechanics-moneydialog").prop("data-isdrop")) {
             // Drop
-            actionChartController.increaseMoney(- moneyAmount, true);
+            actionChartController.getInstance().increaseMoney(- moneyAmount, true);
         } else {
             // Pick
-            const countPicked = actionChartController.increaseMoney(moneyAmount);
+            const countPicked = actionChartController.getInstance().increaseMoney(moneyAmount);
             const sectionState = state.sectionStates.getSectionState();
             sectionState.removeObjectFromSection(Item.MONEY, 0, countPicked);
             // Re-render section

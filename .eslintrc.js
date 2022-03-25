@@ -11,8 +11,8 @@ module.exports = {
     ],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
-        "ecmaVersion": 13,
-        "sourceType": "module"
+        "sourceType": "module",
+        "project": "tsconfig.json"
     },
     "plugins": [
         "@typescript-eslint"
@@ -23,6 +23,5 @@ module.exports = {
         "comma-dangle": 0,
         "quote-props": 0,
         "no-string-throw": 0,
-        "@typescript-eslint/no-inferrable-types": 0
     }
 };

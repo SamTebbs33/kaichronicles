@@ -50,7 +50,7 @@ if(fsn.existsSync("project-aon")) {
     gitPromise = git.clone("https://git.projectaon.org/project-aon.git");
 }
 
-gitPromise.then(result => {
+gitPromise.then(() => {
     for (let i = from; i <= to; i++) {
         new BookData(i).downloadBookData();
     }

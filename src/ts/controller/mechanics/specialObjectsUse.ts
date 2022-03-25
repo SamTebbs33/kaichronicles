@@ -1,4 +1,9 @@
-import { Item, randomTable, translations, state, actionChartController, mechanicsEngine } from "../..";
+import { Item } from "../../model/item";
+import { randomTable } from "../../model/randomTable";
+import { state } from "../../state";
+import { translations } from "../../views/viewsUtils/translations";
+import { actionChartController } from "../actionChartController";
+import { mechanicsEngine } from "./mechanicsEngine";
 
 /**
  * Special objects use
@@ -29,7 +34,7 @@ export class SpecialObjectsUse {
         }
 
         if ( addicted ) {
-            actionChartController.increaseEndurance( -4 , false , true );
+            actionChartController.getInstance().increaseEndurance( -4 , false , true );
         }
 
         // Rembember adgana use

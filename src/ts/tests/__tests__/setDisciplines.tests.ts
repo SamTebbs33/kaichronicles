@@ -1,6 +1,11 @@
 import { GameDriver } from "../gameDriver";
 import { WebElement } from "selenium-webdriver";
-import { SetupDisciplines, Book, BookSeries, BookSeriesId, KaiDiscipline, state, projectAon } from "../..";
+import { BookSeries, BookSeriesId } from "../../model/bookSeries";
+import { SetupDisciplines } from "../../controller/mechanics/setupDisciplines";
+import { Book } from "../../model/book";
+import { KaiDiscipline } from "../../model/disciplinesDefinitions";
+import { state } from "../../state";
+import { projectAon } from "../../model/projectAon";
 
 // Selenium web driver
 const driver: GameDriver = new GameDriver();
@@ -125,7 +130,7 @@ async function testCarryDisciplinesPreviousBook(bookNumber: number) {
     const seriesDisciplinesIds = bookSeries.getDisciplines();
 
     // Setup previous book state with the initial disciplines number (include always weaponskill)
-    let disciplinesIds: string[] = seriesDisciplinesIds.clone();
+    let disciplinesIds = seriesDisciplinesIds.slice();
     disciplinesIds.removeValue(bookSeries.weaponskillDiscipline);
     disciplinesIds.unshift(bookSeries.weaponskillDiscipline);
     const nextDisciplineToSelect = disciplinesIds[bookSeries.initialNDisciplines];
@@ -199,7 +204,7 @@ describe("setDisciplines", () => {
     for (let bookNumber = 1; bookNumber <= projectAon.supportedBooks.length; bookNumber++) {
     // for (let bookNumber = 7; bookNumber <= 7; bookNumber++) {
 
-        describe("Book " + bookNumber, () => {
+        describe("Book " + bookNumber.toString(), () => {
 
             beforeEach( async () => {
                 await driver.setupBookState(bookNumber);

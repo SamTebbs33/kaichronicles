@@ -3,7 +3,7 @@
  */
 export const setupView = {
     log(text: string, level: string = null) {
-        let style: string = "";
+        let style = "";
         if (level === "ok") {
             style = 'style="color: green"';
         } else if (level === "error") {

@@ -1,4 +1,8 @@
-import { Book, Mechanics, SectionRenderer, Combat, mechanicsEngine } from "..";
+import { mechanicsEngine } from "../controller/mechanics/mechanicsEngine";
+import { Book } from "./book";
+import { Combat } from "./combat";
+import { Mechanics } from "./mechanics";
+import { SectionRenderer } from "./sectionRenderer";
 
 /**
  * A book section info
@@ -53,7 +57,7 @@ export class Section {
      * @param $xml The jQuery XML root tag
      * @returns The fake section
      */
-    public static createFromXml( book: Book , $xml: any ): Section {
+    public static createFromXml( book: Book , $xml: JQuery<HTMLElement> ): Section {
         const s = new Section( book , null , null);
         s.$xmlSection = $xml;
         s.$data = $xml;
@@ -102,7 +106,7 @@ export class Section {
 
         const sNumber = this.getSectionNumber();
         if ( sNumber ) {
-            return "sect" + ( sNumber + 1 );
+            return "sect" + ( sNumber + 1 ).toString();
         }
 
         return null;
@@ -128,7 +132,7 @@ export class Section {
             if ( sNumber === 1 ) {
                 return "kaiwisdm";
             } else {
-                return "sect" + ( sNumber - 1 );
+                return "sect" + ( sNumber - 1 ).toString();
             }
         }
 
@@ -140,7 +144,7 @@ export class Section {
      * @param renderIllustrationsText True if the illustrations text should be
      * rendered
      */
-    public getHtml(renderIllustrationsText: boolean = false): string {
+    public getHtml(renderIllustrationsText = false): string {
         const sectionRenderer = new SectionRenderer( this );
         sectionRenderer.renderIllustrationsText = renderIllustrationsText;
         return sectionRenderer.renderSection();
@@ -151,7 +155,7 @@ export class Section {
      * @return Combats on this section
      */
     public getCombats(): Combat[] {
-        const result = [];
+        const result = new Array<Combat>();
         this.$xmlSection.find("combat").each((index, combat) => {
             const $combat = $(combat);
             result.push( new Combat(
@@ -198,14 +202,14 @@ export class Section {
     /**
      * Returns the foot notes XML node for this section. null if it was not found
      */
-    public getFootNotesXml(): any {
+    public getFootNotesXml(): JQuery<HTMLElement> {
         return this.$xmlSection.find("footnotes").first();
     }
 
     /**
      * Returns the URL of this section on the project aon web site
      */
-    public getSectionAonPage = function(): string {
+    public getSectionAonPage = function(this: Section): string {
         return this.book.getBookProjectAonHtmlDir() + this.sectionId + ".htm";
     };
 

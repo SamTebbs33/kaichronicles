@@ -1,25 +1,54 @@
-import { setupController, views, actionChartView, state, ActionChartItem, SectionItem, EquipmentSectionMechanics, translations, template, mechanicsEngine, Item, SpecialObjectsUse, CombatMechanics, Bonus, InventoryState } from "..";
+import { Bonus } from "../model/actionChart";
+import { ActionChartItem } from "../model/actionChartItem";
+import { InventoryState } from "../model/inventoryState";
+import { Item } from "../model/item";
+import { SectionItem } from "../model/sectionState";
+import { state } from "../state";
+import { template } from "../template";
+import { views } from "../views";
+import { actionChartView } from "../views/actionChartView";
+import { translations } from "../views/viewsUtils/translations";
+import { Controller } from "./controllerFactory";
+import { CombatMechanics } from "./mechanics/combatMechanics";
+import { EquipmentSectionMechanics } from "./mechanics/equipmentSectionMechanics";
+import { mechanicsEngine } from "./mechanics/mechanicsEngine";
+import { SpecialObjectsUse } from "./mechanics/specialObjectsUse";
+import { setupController } from "./setupController";
 
 /**
  * The action chart controller
  */
-export const actionChartController = {
+export class actionChartController implements Controller {
+
+    private static instance: actionChartController;
+
+    private constructor() {
+        // Set constructor private
+    }
+
+    onLeave() {
+        // Do Nothing
+    }
+
+    public static getInstance(): actionChartController {
+        if(!this.instance) {
+            this.instance = new this()
+        }
+        return this.instance;
+    }
 
     /**
      * Render the action chart
      */
-    index() {
-
-        if (!setupController.checkBook()) {
+    async index() {
+        if (!setupController.getInstance().checkBook()) {
             return;
         }
 
-        views.loadView("actionChart.html")
-            .then(() => {
-                actionChartView.fill(state.actionChart);
-                template.addSectionReadyMarker();
-            });
-    },
+        await views.loadView("actionChart.html");
+        actionChartView.fill(state.actionChart);
+        template.addSectionReadyMarker();
+    }
 
     /**
      * Pick an object by its id
@@ -29,9 +58,9 @@ export const actionChartController = {
      * @param fromUITable True if we are picking the object from the UI
      * @return True if the object has been get. False if the object cannot be get
      */
-    pick(objectId: string, showError: boolean = false): boolean {
-        return actionChartController.pickActionChartItem(new ActionChartItem(objectId), showError, false);
-    },
+    pick(objectId: string, showError = false): boolean {
+        return this.pickActionChartItem(new ActionChartItem(objectId), showError, false);
+    }
 
     /**
      * Pick an object from the user interface
@@ -40,8 +69,8 @@ export const actionChartController = {
      */
     pickFromUi(sectionItem: SectionItem): boolean {
         const aChartItem = new ActionChartItem(sectionItem.id, sectionItem.usageCount);
-        return actionChartController.pickActionChartItem(aChartItem, true, true);
-    },
+        return this.pickActionChartItem(aChartItem, true, true);
+    }
 
     /**
      * Pick an object
@@ -51,7 +80,7 @@ export const actionChartController = {
      * @param fromUITable True if we are picking the object from the UI
      * @return True if the object has been get. False if the object cannot be get
      */
-    pickActionChartItem(aChartItem: ActionChartItem, showError: boolean = false, fromUITable: boolean = false): boolean {
+    pickActionChartItem(aChartItem: ActionChartItem, showError = false, fromUITable = false): boolean {
         try {
             // Get object info
             const o = aChartItem.getItem();
@@ -86,7 +115,7 @@ export const actionChartController = {
             console.log(e); // This is not really an application error, so do not call mechanicsEngine.debugWarning()
             return false;
         }
-    },
+    }
 
     /**
      * The player pick a set of objects
@@ -96,7 +125,7 @@ export const actionChartController = {
         let renderAvailableObjects = false;
         const sectionState = state.sectionStates.getSectionState();
         for (const item of arrayOfItems) {
-            if (!actionChartController.pickActionChartItem(item, true, false)) {
+            if (!this.pickActionChartItem(item, true, false)) {
                 // Object cannot be picked. Add the object as available on the current section
                 sectionState.addActionChartItemToSection(item);
                 renderAvailableObjects = true;
@@ -106,7 +135,7 @@ export const actionChartController = {
             // Render available objects on this section (game view)
             mechanicsEngine.fireInventoryEvents();
         }
-    },
+    }
 
     /**
      * Drop an object
@@ -131,18 +160,18 @@ export const actionChartController = {
      * @returns If objectId was an really object id and the object was deleted, it returns the delete object info.
      * Otherwise, it returns true if something was deleted, or false if not
      */
-    drop(objectId: string, availableOnSection: boolean = false, fromUI: boolean = false, arrowsCount: number = 0,
-         objectIndex: number = -1): boolean|ActionChartItem {
+    drop(objectId: string, availableOnSection = false, fromUI = false, arrowsCount = 0,
+        objectIndex = -1): boolean | ActionChartItem {
 
         if (objectId === "allweapons") {
-            actionChartController.dropItemsList(state.actionChart.getWeaponsIds());
+            this.dropItemsList(state.actionChart.getWeaponsIds());
             return true;
         }
 
         if (objectId === "allhandtohand") {
-            for(const w of state.actionChart.getWeaponsIds()) {
+            for (const w of state.actionChart.getWeaponsIds()) {
                 const i = state.actionChart.getActionChartItem(w);
-                if(i.getItem().isHandToHandWeapon()) {
+                if (i.getItem().isHandToHandWeapon()) {
                     this.drop(i.getItem().id);
                 }
             }
@@ -158,48 +187,48 @@ export const actionChartController = {
         }
 
         if (objectId === "allweaponlike") {
-            const weaponsIds = [];
+            const weaponsIds = new Array<string>();
             for (const w of state.actionChart.getWeaponObjects(false)) {
                 weaponsIds.push(w.id);
             }
-            actionChartController.dropItemsList(weaponsIds);
+            this.dropItemsList(weaponsIds);
             return true;
         }
 
         if (objectId === "backpackcontent") {
-            actionChartController.dropBackpackContent();
+            this.dropBackpackContent();
             return true;
         }
 
         if (objectId === "allspecial") {
-            actionChartController.dropItemsList(state.actionChart.getSpecialItemsIds());
+            this.dropItemsList(state.actionChart.getSpecialItemsIds());
             return true;
         }
 
         if (objectId === "allspecialgrdmaster") {
-            actionChartController.dropItemsList(state.actionChart.getSpecialItemsIds().filter((itemId) => {
+            this.dropItemsList(state.actionChart.getSpecialItemsIds().filter((itemId) => {
                 return !Item.ALLOWED_GRAND_MASTER.includes(itemId);
             }));
             return true;
         }
 
         if (objectId === "allmeals") {
-            actionChartController.increaseMeals(-state.actionChart.meals);
+            this.increaseMeals(-state.actionChart.meals);
             return true;
         }
 
         if (objectId === "all" || objectId === "allobjects") {
 
             if (objectId === "all") {
-                actionChartController.drop("backpack");
-                actionChartController.increaseMoney(- state.actionChart.beltPouch);
+                this.drop("backpack");
+                this.increaseMoney(- state.actionChart.beltPouch);
             } else {
                 // objectId === 'allobjects' => Backpack content, but not the backpack itself
-                actionChartController.drop("backpackcontent");
+                this.drop("backpackcontent");
             }
 
-            actionChartController.drop("allweapons");
-            actionChartController.drop("allspecial");
+            this.drop("allweapons");
+            this.drop("allspecial");
             return true;
         }
 
@@ -228,15 +257,15 @@ export const actionChartController = {
         } else {
             return false;
         }
-    },
+    }
 
     /**
      * Drop all backpack content
      */
     dropBackpackContent() {
-        actionChartController.increaseMeals(-state.actionChart.meals);
-        actionChartController.dropItemsList(state.actionChart.getBackpackItemsIds());
-    },
+        this.increaseMeals(-state.actionChart.meals);
+        this.dropItemsList(state.actionChart.getBackpackItemsIds());
+    }
 
     /**
      * Drop an array of objects
@@ -245,11 +274,11 @@ export const actionChartController = {
     dropItemsList(arrayOfItems: string[]) {
         // arrayOfItems can be a reference to a state.actionChart member, so don't
         // traverse it as is, or we will lose elements
-        const elementsToDrop = arrayOfItems.clone();
+        const elementsToDrop = arrayOfItems.slice();
         for (const objectId of elementsToDrop) {
-            actionChartController.drop(objectId, false, false);
+            this.drop(objectId, false, false);
         }
-    },
+    }
 
     /**
      * Drop a set of objects by its index
@@ -260,23 +289,23 @@ export const actionChartController = {
     dropItemIndicesList(arrayOfItems: ActionChartItem[], indices: number[]): ActionChartItem[] {
 
         // We will delete objects one by one. To be sure indices still valid, delete in descending orde
-        indices = indices.clone();
+        indices = indices.slice();
         indices.sort();
         indices.reverse();
 
         // Drop objects
-        const droppedItems: ActionChartItem[] = [];
+        const droppedItems = new Array<ActionChartItem>();
         for (const index of indices) {
             if (index < 0 || index >= arrayOfItems.length) {
                 continue;
             }
             const item = arrayOfItems[index];
-            if (actionChartController.drop(item.id, false, false, 0, index)) {
+            if (this.drop(item.id, false, false, 0, index)) {
                 droppedItems.push(item);
             }
         }
         return droppedItems;
-    },
+    }
 
     /**
      * Use an object
@@ -286,7 +315,7 @@ export const actionChartController = {
      * or < 0, the first owned object will be used
      * @param displayToast True if a message must to be displayed
      */
-    use(objectId: string, dropObject: boolean = true, index: number = -1, displayToast = false, applyEffect = true) {
+    use(objectId: string, dropObject = true, index = -1, displayToast = false, applyEffect = true) {
         // Get the object
         const o = state.mechanics.getObject(objectId);
         if (!o) {
@@ -296,7 +325,7 @@ export const actionChartController = {
         if (o.usage && applyEffect) {
             // Do the usage action:
             if (o.usage.cls === Item.ENDURANCE) {
-                actionChartController.increaseEndurance(o.usage.increment);
+                this.increaseEndurance(o.usage.increment);
             } else if (o.usage.cls === Item.COMBATSKILL) {
                 // Combat skill modifiers only apply to the current section combats
                 const sectionState = state.sectionStates.getSectionState();
@@ -326,7 +355,7 @@ export const actionChartController = {
                 }
                 aChartItem.usageCount--;
                 if (aChartItem.usageCount <= 0) {
-                    actionChartController.drop(objectId, false, false, 0, index);
+                    this.drop(objectId, false, false, 0, index);
                 } else {
                     actionChartView.updateObjectsLists();
                 }
@@ -335,7 +364,7 @@ export const actionChartController = {
 
         // Fire mechanics rules
         mechanicsEngine.fireObjectUsed(objectId);
-    },
+    }
 
     /**
      * Increase / decrease the meals number
@@ -355,7 +384,7 @@ export const actionChartController = {
         } catch (e) {
             toastr.error(e);
         }
-    },
+    }
 
     /**
      * Increase / decrease the money counter
@@ -364,7 +393,7 @@ export const actionChartController = {
      * @param excessToKaiMonastry If true and if the belt pouch exceed 50, the excess is stored in the kaimonastry section
      * @returns Amount really picked.
      */
-    increaseMoney(count: number, availableOnSection: boolean = false, excessToKaiMonastry = false): number {
+    increaseMoney(count: number, availableOnSection = false, excessToKaiMonastry = false): number {
         const amountPicked = state.actionChart.increaseMoney(count, excessToKaiMonastry);
         const o = state.mechanics.getObject("money");
         if (count > 0) {
@@ -380,7 +409,7 @@ export const actionChartController = {
         }
         actionChartView.updateMoney();
         return amountPicked;
-    },
+    }
 
     /**
      * Display a toast with an endurance increase / decrease
@@ -389,7 +418,7 @@ export const actionChartController = {
      */
     displayEnduranceChangeToast(count: number, permanent: boolean) {
         if (count > 0) {
-            toastr.success(translations.text("msgEndurance", ["+" + count]));
+            toastr.success(translations.text("msgEndurance", ["+" + count.toString()]));
         } else if (count < 0) {
             let toast = translations.text("msgEndurance", [count]);
             if (permanent) {
@@ -399,7 +428,7 @@ export const actionChartController = {
                 toastr.warning(toast);
             }
         }
-    },
+    }
 
     /**
      * Increase / decrease the current endurance
@@ -407,13 +436,13 @@ export const actionChartController = {
      * @param toast False if no message should be show
      * @param permanent True if the increase is permanent (it changes the original endurance)
      */
-    increaseEndurance(count: number, toast: boolean = true, permanent: boolean = false) {
+    increaseEndurance(count: number, toast = true, permanent = false) {
 
         state.actionChart.increaseEndurance(count, permanent);
 
         if (toast) {
             // Display toast
-            actionChartController.displayEnduranceChangeToast(count, permanent);
+            this.displayEnduranceChangeToast(count, permanent);
         }
 
         if (count < 0) {
@@ -427,29 +456,29 @@ export const actionChartController = {
 
         template.updateStatistics();
 
-    },
+    }
 
     /** Set the current endurance, just for debug */
     setEndurance(endurance: number) {
-        actionChartController.increaseEndurance(endurance - state.actionChart.currentEndurance);
-    },
+        this.increaseEndurance(endurance - state.actionChart.currentEndurance);
+    }
 
     /**
      * Increase / decrease the combat skill permanently
      * @param count Number to increase. Negative to decrease
      * @param showToast True if we should show a "toast" on the UI with the CS increase
      */
-    increaseCombatSkill(count, showToast: boolean = true) {
+    increaseCombatSkill(count: number, showToast = true) {
         state.actionChart.combatSkill += count;
         if (showToast) {
             if (count > 0) {
-                toastr.success(translations.text("msgCombatSkill", ["+" + count]));
+                toastr.success(translations.text("msgCombatSkill", ["+" + count.toString()]));
             } else if (count < 0) {
                 toastr.warning(translations.text("msgCombatSkill", [count]));
             }
         }
         template.updateStatistics();
-    },
+    }
 
     /**
      * Set the current weapon
@@ -465,8 +494,8 @@ export const actionChartController = {
         }
 
         state.actionChart.setSelectedWeapon(weaponId);
-        actionChartController.updateSelectedWeaponUI();
-    },
+        this.updateSelectedWeaponUI();
+    }
 
     /**
      * Change the "Fight unarmed" flag.
@@ -474,8 +503,8 @@ export const actionChartController = {
      */
     setFightUnarmed(fightUnarmed: boolean) {
         state.actionChart.fightUnarmed = fightUnarmed;
-        actionChartController.updateSelectedWeaponUI();
-    },
+        this.updateSelectedWeaponUI();
+    }
 
     /**
      * Update the UI related to the currently selected weapon
@@ -496,7 +525,7 @@ export const actionChartController = {
         const weapon = state.actionChart.getSelectedWeaponItem(false);
         const name = weapon ? weapon.name : translations.text("noneFemenine");
         toastr.info(translations.text("msgCurrentWeapon", [name]));
-    },
+    }
 
     /**
      * Returns a string with a set of bonuses
@@ -514,7 +543,7 @@ export const actionChartController = {
             txt.push(bonus.concept + ": " + txtInc);
         }
         return txt.join(", ");
-    },
+    }
 
     /**
      * Restore the inventory from an object generated with ActionChart.getInventoryState.
@@ -525,36 +554,36 @@ export const actionChartController = {
     restoreInventoryState(inventoryState: InventoryState, recoverWeapons: boolean) {
 
         if (!state.actionChart.hasBackpack && inventoryState.hasBackpack) {
-            actionChartController.pick(Item.BACKPACK, false);
+            this.pick(Item.BACKPACK, false);
         }
         inventoryState.hasBackpack = false;
 
-        actionChartController.increaseMoney(inventoryState.beltPouch);
+        this.increaseMoney(inventoryState.beltPouch);
         inventoryState.beltPouch = 0;
 
-        actionChartController.increaseMeals(inventoryState.meals);
+        this.increaseMeals(inventoryState.meals);
         inventoryState.meals = 0;
 
-        actionChartController.pickItemsList(inventoryState.backpackItems);
+        this.pickItemsList(inventoryState.backpackItems);
         inventoryState.backpackItems = [];
 
         if (recoverWeapons) {
-            actionChartController.pickItemsList(inventoryState.weapons);
+            this.pickItemsList(inventoryState.weapons);
             inventoryState.weapons = [];
         }
 
         if (recoverWeapons) {
-            actionChartController.pickItemsList(inventoryState.specialItems);
+            this.pickItemsList(inventoryState.specialItems);
             inventoryState.specialItems = [];
         } else {
             // Recover only non-weapon special items
-            actionChartController.pickItemsList(inventoryState.getAndRemoveSpecialItemsNonWeapon());
+            this.pickItemsList(inventoryState.getAndRemoveSpecialItemsNonWeapon());
         }
 
         // This must be done after picking quivers (special items)
-        actionChartController.increaseArrows(inventoryState.arrows);
+        this.increaseArrows(inventoryState.arrows);
         inventoryState.arrows = 0;
-    },
+    }
 
     /**
      * Increase the number of arrows of the player
@@ -578,7 +607,7 @@ export const actionChartController = {
         }
 
         return realIncrement;
-    },
+    }
 
     /**
      * Use the Magnakai Medicine Archmaster +20 EP.
@@ -588,9 +617,9 @@ export const actionChartController = {
             toastr.success(translations.text("msgEndurance", ["+20"]));
             template.updateStatistics();
         }
-    },
+    }
 
     /** Return page */
-    getBackController() { return "game"; },
+    getBackController() { return "game"; }
 
-};
+}

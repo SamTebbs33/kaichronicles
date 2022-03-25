@@ -1,4 +1,8 @@
-import { state, translations, gameView, mechanicsEngine, ActionChart } from "../..";
+import { ActionChart } from "../../model/actionChart";
+import { state } from "../../state";
+import { gameView } from "../../views/gameView";
+import { translations } from "../../views/viewsUtils/translations";
+import { mechanicsEngine } from "./mechanicsEngine";
 
 /**
  * Equipment section mechanics
@@ -13,7 +17,7 @@ export class EquipmentSectionMechanics {
     public static checkMoreObjectsCanBePicked( pickedObjectId: string ) {
 
         // Check if the section has restrictions about the number of pickable objects:
-        const $sectionMechanics: any = state.mechanics.getSection( state.sectionStates.currentSection );
+        const $sectionMechanics = state.mechanics.getSection( state.sectionStates.currentSection );
         if ( !$sectionMechanics ) {
             return;
         }
@@ -47,7 +51,7 @@ export class EquipmentSectionMechanics {
      */
     public static getNPickedObjects( sectionId: string ): number {
 
-        const $sectionMechanics: any = state.mechanics.getSection( sectionId );
+        const $sectionMechanics = state.mechanics.getSection( sectionId );
         if ( !$sectionMechanics ) {
             return 0;
         }
@@ -154,7 +158,7 @@ export class EquipmentSectionMechanics {
         }
 
         // Check the currently number of picked objects
-        const pickedObjects: string[] = [];
+        const pickedObjects = new Array<string>();
         for ( objectId in originalObjects) {
 
             if ( !Object.prototype.hasOwnProperty.call(originalObjects, objectId) ) {

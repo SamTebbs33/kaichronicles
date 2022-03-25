@@ -1,6 +1,12 @@
-import { mechanicsEngine, gameView, state, template, randomTable, actionChartController, translations } from "../../..";
+import { randomTable } from "../../../model/randomTable";
+import { state } from "../../../state";
+import { template } from "../../../template";
+import { gameView } from "../../../views/gameView";
+import { translations } from "../../../views/viewsUtils/translations";
+import { actionChartController } from "../../actionChartController";
+import { mechanicsEngine } from "../mechanicsEngine";
 
-interface GameState {
+export interface GameState {
     moneyToBet: number,
     moneyWon: number,
     numberToBet: number
@@ -22,7 +28,7 @@ export const book2sect238 = {
 
         // Get the game state
         const sectionState = state.sectionStates.getSectionState();
-        let gameState:GameState = sectionState.ruleHasBeenExecuted(rule);
+        let gameState = <GameState>sectionState.ruleHasBeenExecuted(rule);
         if (!gameState) {
             gameState = {
                 moneyToBet: 1,
@@ -39,7 +45,7 @@ export const book2sect238 = {
 
         $("#mechanics-play").on("click", (e) => {
             e.preventDefault();
-            book2sect238.click(gameState);
+            void book2sect238.click(gameState);
         });
     },
 
@@ -59,7 +65,7 @@ export const book2sect238 = {
         mechanicsEngine.setChoiceState("sect186", noMoney);
     },
 
-    click(gameState: GameState) {
+    async click(gameState: GameState) {
         // Checks
         if (!$("#mechanics-moneyToBet").isValid() ||
             !$("#mechanics-numberToBet").isValid()) {
@@ -70,37 +76,36 @@ export const book2sect238 = {
         const num = $("#mechanics-numberToBet").getNumber();
 
         // Play the game
-        randomTable.getRandomValueAsync().then((random) => {
-            let moneyInc: number;
-            if (random === num) {
-                moneyInc = money * 8;
-            } else if (randomTable.module10(random + 1) === num ||
-                randomTable.module10(random - 1) === num) {
-                moneyInc = money * 5;
-            } else {
-                moneyInc = -money;
-            }
+        const random = await randomTable.getRandomValueAsync();
+        let moneyInc: number;
+        if (random === num) {
+            moneyInc = money * 8;
+        } else if (randomTable.module10(random + 1) === num ||
+            randomTable.module10(random - 1) === num) {
+            moneyInc = money * 5;
+        } else {
+            moneyInc = -money;
+        }
 
-            // Limit money won to 40
-            if (gameState.moneyWon + moneyInc > 40) {
-                moneyInc = 40 - gameState.moneyWon;
-            }
+        // Limit money won to 40
+        if (gameState.moneyWon + moneyInc > 40) {
+            moneyInc = 40 - gameState.moneyWon;
+        }
 
-            actionChartController.increaseMoney(moneyInc);
+        actionChartController.getInstance().increaseMoney(moneyInc);
 
-            // Update game state:
-            gameState.moneyToBet = money;
-            gameState.numberToBet = num;
-            gameState.moneyWon += moneyInc;
-            let msg = translations.text("randomTable") + ": " + random + ". ";
-            if (moneyInc >= 0) {
-                msg += translations.text("msgGetMoney", [moneyInc]);
-            } else {
-                msg += translations.text("msgDropMoney", [-moneyInc]);
-            }
-            $("#mechanics-gameStatus").text(msg);
+        // Update game state:
+        gameState.moneyToBet = money;
+        gameState.numberToBet = num;
+        gameState.moneyWon += moneyInc;
+        let msg = translations.text("randomTable") + ": " + random.toString() + ". ";
+        if (moneyInc >= 0) {
+            msg += translations.text("msgGetMoney", [moneyInc]);
+        } else {
+            msg += translations.text("msgDropMoney", [-moneyInc]);
+        }
+        $("#mechanics-gameStatus").text(msg);
 
-            book2sect238.updateUI(gameState, false);
-        });
+        book2sect238.updateUI(gameState, false);
     },
 };

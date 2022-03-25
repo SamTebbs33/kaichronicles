@@ -1,4 +1,11 @@
-import { Mechanics, Book, Section, Disciplines, mechanicsEngine, ExpressionEvaluator, randomMechanics, LoreCircle } from "..";
+import { mechanicsEngine } from "../controller/mechanics/mechanicsEngine";
+import { randomMechanics } from "../controller/mechanics/randomMechanics";
+import { Book } from "./book";
+import { Disciplines } from "./disciplines";
+import { ExpressionEvaluator } from "./expressionEvaluator";
+import { LoreCircle } from "./loreCircle";
+import { Mechanics } from "./mechanics";
+import { Section } from "./section";
 
 /**
  * Tools to validate book mechanics
@@ -12,14 +19,14 @@ export class BookValidator {
     public book: Book;
 
     /** Errors found */
-    public errors: string[] = [];
+    public errors = new Array<string>();
 
     /** Current testing section */
     private currentSection: Section;
 
     /** Special values allowed on "drop" rule */
-    private specialDropValues = [ "allweapons" , "allhandtohand" , "allweaponlike" , "backpackcontent" ,
-        "currentweapon" , "allspecial" , "allspecialgrdmaster", "allmeals" , "all" , "allobjects" ];
+    private specialDropValues = ["allweapons", "allhandtohand", "allweaponlike", "backpackcontent",
+        "currentweapon", "allspecial", "allspecialgrdmaster", "allmeals", "all", "allobjects"];
 
     /**
      * XSD text for mechanics validation. null until is not loaded
@@ -29,32 +36,20 @@ export class BookValidator {
     /**
      * Constructor
      */
-    public constructor( mechanics: Mechanics , book: Book ) {
+    public constructor(mechanics: Mechanics, book: Book) {
         this.mechanics = mechanics;
         this.book = book;
     }
 
-    public static downloadBookAndGetValidator( bookNumber: number ): JQueryPromise<BookValidator> {
+    public static async downloadBookAndGetValidator(bookNumber: number): Promise<BookValidator> {
 
-        const book = new Book(bookNumber );
-        const mechanics = new Mechanics( book );
+        const book = new Book(bookNumber);
+        const mechanics = new Mechanics(book);
 
-        const promises = [];
-        promises.push( book.downloadBookXml() );
-        promises.push( mechanics.downloadXml() );
-        promises.push( mechanics.downloadObjectsXml() );
+        const promises = [book.downloadBookXml(), mechanics.downloadXml(), mechanics.downloadObjectsXml()];
 
-        const dfd = jQuery.Deferred<BookValidator>();
-
-        $.when(...promises)
-        .done( () => {
-            dfd.resolve( new BookValidator(mechanics, book) );
-        } )
-        .fail( () => {
-            dfd.reject("Error downloading book files");
-        });
-
-        return dfd.promise();
+        await Promise.all(promises);
+        return new BookValidator(mechanics, book);
     }
 
     /**
@@ -70,7 +65,7 @@ export class BookValidator {
         // Traverse book sections
         const lastSectionId = this.mechanics.getLastSectionId();
         let currentSectionId = Book.INITIAL_SECTION;
-        while ( currentSectionId !== lastSectionId ) {
+        while (currentSectionId !== lastSectionId) {
             // The book section
             this.validateSectionInternal(currentSectionId);
             currentSectionId = this.currentSection.getNextSectionId();
@@ -81,14 +76,14 @@ export class BookValidator {
      * Validate a single section. Errors will be stored at this.errors
      * @param sectionId Section to validate
      */
-    public validateSection( sectionId: string ) {
+    public validateSection(sectionId: string) {
         this.errors = [];
         this.validateSectionInternal(sectionId);
     }
 
     /** Check book disciplines ids and applicacion disciplines ids match */
     private validateDisciplines() {
-        const bookIds = Object.keys( this.book.getDisciplinesTable() );
+        const bookIds = Object.keys(this.book.getDisciplinesTable());
         const enumIds = Disciplines.getSeriesDisciplines(this.book.getBookSeries().id);
         for (const d of bookIds) {
             if (!enumIds.includes(d)) {
@@ -102,12 +97,12 @@ export class BookValidator {
         }
     }
 
-    private validateSectionInternal( sectionId: string ) {
+    private validateSectionInternal(sectionId: string) {
         // The book section
-        this.currentSection = new Section( this.book , sectionId , this.mechanics );
+        this.currentSection = new Section(this.book, sectionId, this.mechanics);
         // The section mechanics
-        const $sectionMechanics = this.mechanics.getSection( sectionId );
-        this.validateChildrenRules( $sectionMechanics );
+        const $sectionMechanics = this.mechanics.getSection(sectionId);
+        this.validateChildrenRules($sectionMechanics);
 
         if (sectionId === Book.DISCIPLINES_SECTION) {
             this.validateDisciplines();
@@ -115,11 +110,11 @@ export class BookValidator {
     }
 
     private validateChildrenRules($parent: JQuery<Element>) {
-        if ( !$parent ) {
+        if (!$parent) {
             return;
         }
-        for ( const child of $parent.children().toArray() ) {
-            this.validateRule( child );
+        for (const child of $parent.children().toArray()) {
+            this.validateRule(child);
         }
     }
 
@@ -128,26 +123,26 @@ export class BookValidator {
 
             const $rule = $(rule);
 
-            if ( this[rule.nodeName] ) {
+            if (this[rule.nodeName]) {
                 // There is a function to validate the rule. Validate it:
-                this[rule.nodeName]( $rule );
+                this[rule.nodeName]($rule);
             }
 
-            if ( rule.nodeName === "test" ) {
+            if (rule.nodeName === "test") {
 
                 // Other special case for books XML update. If the current XML does not contain the test text, ignore children
                 const text: string = $rule.attr("sectionContainsText");
-                if ( text && !this.currentSection.containsText( text ) ) {
+                if (text && !this.currentSection.containsText(text)) {
                     // Ignore children
                     return;
                 }
 
             }
 
-            this.validateChildrenRules( $rule );
+            this.validateChildrenRules($rule);
         } catch (e) {
             mechanicsEngine.debugWarning(e);
-            this.addError( $(rule) , "Exception validating rule: " + e );
+            this.addError($(rule), "Exception validating rule: " + e);
         }
     }
 
@@ -169,102 +164,102 @@ export class BookValidator {
     // COMMON ATTRIBUTRES VALIDATION
     //////////////////////////////////////////////////////////
 
-    private getPropertyValueAsArray( $rule: JQuery<Element> , property: string , allowMultiple: boolean ): string[] {
+    private getPropertyValueAsArray($rule: JQuery<Element>, property: string, allowMultiple: boolean): string[] {
 
-        if ( allowMultiple ) {
-            return mechanicsEngine.getArrayProperty( $rule , property );
+        if (allowMultiple) {
+            return mechanicsEngine.getArrayProperty($rule, property);
         }
 
         // Single value
-        const value: string = $rule.attr( property );
-        if ( value ) {
-            return [ value ];
+        const value: string = $rule.attr(property);
+        if (value) {
+            return [value];
         } else {
             return [];
         }
     }
 
-    private validateObjectIdsAttribute( $rule: JQuery<Element> , property: string , allowMultiple: boolean , onlyWeapons: boolean ): boolean {
+    private validateObjectIdsAttribute($rule: JQuery<Element>, property: string, allowMultiple: boolean, onlyWeapons: boolean): boolean {
 
-        const objectIds = this.getPropertyValueAsArray( $rule , property , allowMultiple );
-        if ( objectIds.length === 0 ) {
+        const objectIds = this.getPropertyValueAsArray($rule, property, allowMultiple);
+        if (objectIds.length === 0) {
             return false;
         }
 
-        for ( const objectId of objectIds ) {
+        for (const objectId of objectIds) {
             const item = this.mechanics.getObject(objectId);
-            if ( !item ) {
-                this.addError( $rule , "Object id " + objectId + " not found");
-            } else if ( onlyWeapons && !item.isWeapon() ) {
-                this.addError( $rule , "Object id " + objectId + " is not a weapon");
- }
+            if (!item) {
+                this.addError($rule, "Object id " + objectId + " not found");
+            } else if (onlyWeapons && !item.isWeapon()) {
+                this.addError($rule, "Object id " + objectId + " is not a weapon");
+            }
         }
         return true;
     }
 
-    private validateDisciplinesAttribute( $rule: JQuery<Element> , property: string , allowMultiple: boolean ) {
+    private validateDisciplinesAttribute($rule: JQuery<Element>, property: string, allowMultiple: boolean) {
 
-        const disciplinesIds = this.getPropertyValueAsArray( $rule , property , allowMultiple );
-        if ( disciplinesIds.length === 0 ) {
+        const disciplinesIds = this.getPropertyValueAsArray($rule, property, allowMultiple);
+        if (disciplinesIds.length === 0) {
             return;
         }
 
         const disciplinesTable = this.book.getDisciplinesTable();
-        for ( const disciplineId of disciplinesIds ) {
-            if ( !disciplinesTable[disciplineId] ) {
-                this.addError( $rule , "Wrong discipline id: " + disciplineId );
+        for (const disciplineId of disciplinesIds) {
+            if (!disciplinesTable[disciplineId]) {
+                this.addError($rule, "Wrong discipline id: " + disciplineId);
             }
         }
     }
 
-    private validateSectionsAttribute( $rule: JQuery<Element> , property: string , allowMultiple: boolean ) {
-        const sectionIds = this.getPropertyValueAsArray( $rule , property , allowMultiple );
+    private validateSectionsAttribute($rule: JQuery<Element>, property: string, allowMultiple: boolean) {
+        const sectionIds = this.getPropertyValueAsArray($rule, property, allowMultiple);
 
-        for ( const sectionId of sectionIds ) {
-            if ( this.book.getSectionXml(sectionId).length === 0 ) {
-                this.addError( $rule , "Section does not exists: " + sectionId );
+        for (const sectionId of sectionIds) {
+            if (this.book.getSectionXml(sectionId).length === 0) {
+                this.addError($rule, "Section does not exists: " + sectionId);
             }
         }
     }
 
-    private validateSectionChoiceAttribute( $rule: JQuery<Element>, property: string, allowAll: boolean ) {
-        const sectionId: string = $rule.attr( property );
-        if ( !sectionId ) {
+    private validateSectionChoiceAttribute($rule: JQuery<Element>, property: string, allowAll: boolean) {
+        const sectionId: string = $rule.attr(property);
+        if (!sectionId) {
             return;
         }
 
-        if ( allowAll && sectionId === "all" ) {
+        if (allowAll && sectionId === "all") {
             return;
         }
 
         // If the rule is under a "registerGlobalRule", do no check this
-        if ( $rule.closest( "registerGlobalRule" ).length > 0 ) {
+        if ($rule.closest("registerGlobalRule").length > 0) {
             return;
         }
 
-        const $choices = this.currentSection.$xmlSection.find( "choice[idref=" + sectionId + "]" );
-        if ( $choices.length === 0 ) {
+        const $choices = this.currentSection.$xmlSection.find("choice[idref=" + sectionId + "]");
+        if ($choices.length === 0) {
 
             // If there is a "textToChoice" link with that destination, it's ok
-            const $sectionMechanics = this.mechanics.getSection( this.currentSection.sectionId );
-            if ( $sectionMechanics && $sectionMechanics.find("textToChoice[section=" + sectionId + "]").length > 0 ) {
+            const $sectionMechanics = this.mechanics.getSection(this.currentSection.sectionId);
+            if ($sectionMechanics && $sectionMechanics.find("textToChoice[section=" + sectionId + "]").length > 0) {
                 return;
             }
 
-            this.addError( $rule , "No choice found on this section with destination to " + sectionId );
+            this.addError($rule, "No choice found on this section with destination to " + sectionId);
         }
     }
 
-    private checkThereAreCombats( $rule: JQuery<Element> ) {
+    private checkThereAreCombats($rule: JQuery<Element>) {
 
         // If the rule is under a "registerGlobalRule", do no check this
-        if ( $rule.closest( "registerGlobalRule" ).length > 0 ) {
+        if ($rule.closest("registerGlobalRule").length > 0) {
             return;
         }
 
         // Check there are combats on this section
-        if ( this.currentSection.getCombats().length === 0 ) {
-            this.addError( $rule , "There are no combats on this section");
+        if (this.currentSection.getCombats().length === 0) {
+            this.addError($rule, "There are no combats on this section");
         }
     }
 
@@ -272,44 +267,44 @@ export class BookValidator {
     // EXPRESSIONS VALIDATION
     //////////////////////////////////////////////////////////
 
-    private validateAndEvalExpression( $rule: JQuery<Element> ,  expression: string ): any {
+    private validateAndEvalExpression($rule: JQuery<Element>, expression: string) {
         try {
-            for ( const keyword of ExpressionEvaluator.getKeywords( expression ) ) {
-                if ( !ExpressionEvaluator.isValidKeyword( keyword ) ) {
-                    this.addError( $rule , "Unkwown keyword " + keyword );
+            for (const keyword of ExpressionEvaluator.getKeywords(expression)) {
+                if (!ExpressionEvaluator.isValidKeyword(keyword)) {
+                    this.addError($rule, "Unkwown keyword " + keyword);
                 }
-                expression = expression.replaceAll( keyword , "0" );
+                expression = expression.replaceAll(keyword, "0");
             }
             // tslint:disable-next-line: no-eval
-            return eval( expression );
+            return eval(expression);
         } catch (e) {
             mechanicsEngine.debugWarning(e);
-            this.addError( $rule , "Error evaluating expression: " + e );
+            this.addError($rule, "Error evaluating expression: " + e);
             return null;
         }
     }
 
-    private validateExpression( $rule: JQuery<Element> , property: string , expectedType: string ) {
-        const expression = $rule.attr( property );
-        if ( !expression ) {
+    private validateExpression($rule: JQuery<Element>, property: string, expectedType: string) {
+        const expression = $rule.attr(property);
+        if (!expression) {
             return;
         }
 
-        const value = this.validateAndEvalExpression( $rule , expression );
-        if ( value !== null ) {
+        const value = this.validateAndEvalExpression($rule, expression);
+        if (value !== null) {
             const type = typeof value;
-            if ( type !== expectedType ) {
-                this.addError( $rule , "Wrong expression type. Expected: " + expectedType + ", expression type: " + type );
+            if (type !== expectedType) {
+                this.addError($rule, "Wrong expression type. Expected: " + expectedType + ", expression type: " + type);
             }
         }
     }
 
-    private validateNumericExpression( $rule: JQuery<Element> , property: string ) {
-        this.validateExpression( $rule , property , "number" );
+    private validateNumericExpression($rule: JQuery<Element>, property: string) {
+        this.validateExpression($rule, property, "number");
     }
 
-    private validateBooleanExpression( $rule: JQuery<Element> , property: string ) {
-        this.validateExpression( $rule , property , "boolean" );
+    private validateBooleanExpression($rule: JQuery<Element>, property: string) {
+        this.validateExpression($rule, property, "boolean");
     }
 
     private validateRandomTableIndex($rule: JQuery<Element>) {
@@ -331,19 +326,16 @@ export class BookValidator {
     /**
      * Download the XSD to validate the XML, if this has not been done yet
      */
-    public static downloadXsd(): JQueryXHR | JQueryPromise<void> {
+    public static async downloadXsd() {
 
-        if ( BookValidator.xsdText ) {
+        if (BookValidator.xsdText) {
             // Already downloaded
             return jQuery.Deferred<void>().resolve().promise();
         }
 
-        return $.ajax({
+        BookValidator.xsdText = <string> await $.ajax({
             url: "data/mechanics.xsd",
             dataType: "text"
-        })
-        .done((xmlText: string) => {
-            BookValidator.xsdText = xmlText;
         });
     }
 
@@ -352,79 +344,79 @@ export class BookValidator {
      */
     private validateXml() {
 
-        if ( typeof validateXML === "undefined" ) {
+        if (typeof validateXML === "undefined") {
             // On production, the xmllint.js is not available (size = 2.2 MB minified...)
             return;
         }
 
-        if ( !BookValidator.xsdText ) {
-            this.errors.push( "The XSD for mechanics validation has not been downloaded" );
+        if (!BookValidator.xsdText) {
+            this.errors.push("The XSD for mechanics validation has not been downloaded");
             return;
         }
 
         // The book mechanics
-        let xmlText;
-        if ( this.mechanics.mechanicsXmlText ) {
+        let xmlText: string;
+        if (this.mechanics.mechanicsXmlText) {
             xmlText = this.mechanics.mechanicsXmlText;
         } else {
             // This will NOT be the same as the original, and line numbers reported by "validateXML" will be aproximated
-            xmlText = new XMLSerializer().serializeToString( this.mechanics.mechanicsXml.documentElement );
+            xmlText = new XMLSerializer().serializeToString(this.mechanics.mechanicsXml.documentElement);
         }
 
         // There is some kind of error with the UTF8 encoding. acute characters throw errors of invalid character...
-        xmlText = xmlText.replace( /[áéíóú¡¿’]/gi , "" );
+        xmlText = xmlText.replace(/[áéíóú¡¿’]/gi, "");
 
         // xmllint.js call parameters
-        const mechanicsFileName = "mechanics-" + this.book.bookNumber + ".xml";
+        const mechanicsFileName = "mechanics-" + this.book.bookNumber.toString() + ".xml";
         const module = {
             xml: xmlText,
             schema: BookValidator.xsdText,
-            arguments: ["--noout", "--schema", "mechanics.xsd", mechanicsFileName ]
+            arguments: ["--noout", "--schema", "mechanics.xsd", mechanicsFileName]
         };
 
         // Do the XSD validation
         const xmllint = validateXML(module).trim();
-        if ( xmllint !== mechanicsFileName + " validates") {
+        if (xmllint !== mechanicsFileName + " validates") {
             // Error:
-            this.errors.push( xmllint );
+            this.errors.push(xmllint);
         }
-        console.log( xmllint );
+        console.log(xmllint);
     }
 
     //////////////////////////////////////////////////////////
     // RULES VALIDATION
     //////////////////////////////////////////////////////////
 
-    private pick( $rule: JQuery<Element> ) {
-        const objectIdFound = this.validateObjectIdsAttribute( $rule , "objectId" , false , false );
+    private pick($rule: JQuery<Element>) {
+        const objectIdFound = this.validateObjectIdsAttribute($rule, "objectId", false, false);
         const classFound = $rule.attr("class");
-        const onlyOne = ( ( objectIdFound && !classFound ) || ( !objectIdFound && classFound ) );
-        if ( !onlyOne ) {
-            this.addError( $rule , 'Must to have a "objectId" or "class" attribute, and only one' );
+        const onlyOne = ((objectIdFound && !classFound) || (!objectIdFound && classFound));
+        if (!onlyOne) {
+            this.addError($rule, 'Must to have a "objectId" or "class" attribute, and only one');
         }
-        if ( classFound && !$rule.attr("count") ) {
-            this.addError( $rule , 'Must to have a "count" attribute' );
+        if (classFound && !$rule.attr("count")) {
+            this.addError($rule, 'Must to have a "count" attribute');
         }
-        this.validateNumericExpression( $rule , "count" );
+        this.validateNumericExpression($rule, "count");
     }
 
-    private randomTable( $rule: JQuery<Element> ) {
+    private randomTable($rule: JQuery<Element>) {
 
-        if ( !$rule.attr("text-en") ) {
+        if (!$rule.attr("text-en")) {
             this.validateRandomTableIndex($rule);
         }
 
         // Check numbers coverage
-        const coverage: number[] = [];
+        const coverage = new Array<number>();
         let overlapped = false;
         let nCasesFound = 0;
-        for ( const child of $rule.children().toArray() ) {
-            if ( child.nodeName === "case" ) {
+        for (const child of $rule.children().toArray()) {
+            if (child.nodeName === "case") {
                 nCasesFound++;
-                const bounds = randomMechanics.getCaseRuleBounds( $(child) );
-                if ( bounds && bounds[0] <= bounds[1] ) {
-                    for ( let i = bounds[0]; i <= bounds[1]; i++) {
-                        if ( coverage.includes(i) ) {
+                const bounds = randomMechanics.getCaseRuleBounds($(child));
+                if (bounds && bounds[0] <= bounds[1]) {
+                    for (let i = bounds[0]; i <= bounds[1]; i++) {
+                        if (coverage.includes(i)) {
                             overlapped = true;
                         } else {
                             coverage.push(i);
@@ -435,95 +427,95 @@ export class BookValidator {
         }
 
         // There can be randomTable's without cases: In that case, do no check coverage:
-        if ( nCasesFound === 0 ) {
+        if (nCasesFound === 0) {
             return;
         }
 
         // TODO: Check randomTableIncrement, and [BOWBONUS]: If it exists, the bounds should be -99, +99
-        let numberToTest;
-        if ( $rule.attr( "zeroAsTen" ) === "true" ) {
+        let numberToTest: number[];
+        if ($rule.attr("zeroAsTen") === "true") {
             numberToTest = [1, 10];
         } else {
             numberToTest = [0, 9];
         }
         let missedNumbers = false;
-        for ( let i = numberToTest[0]; i <= numberToTest[1]; i++) {
-            if ( !coverage.includes(i) ) {
+        for (let i = numberToTest[0]; i <= numberToTest[1]; i++) {
+            if (!coverage.includes(i)) {
                 missedNumbers = true;
             }
         }
 
-        if ( missedNumbers ) {
-            this.addError( $rule, "Missed numbers");
+        if (missedNumbers) {
+            this.addError($rule, "Missed numbers");
         }
-        if ( overlapped ) {
-            this.addError( $rule, "Overlapped numbers");
+        if (overlapped) {
+            this.addError($rule, "Overlapped numbers");
         }
 
     }
 
-    private randomTableIncrement( $rule: JQuery<Element> ) {
-        if ( $rule.attr( "increment" ) !== "reset" ) {
-            this.validateNumericExpression( $rule , "increment" );
+    private randomTableIncrement($rule: JQuery<Element>) {
+        if ($rule.attr("increment") !== "reset") {
+            this.validateNumericExpression($rule, "increment");
         }
-        this.validateRandomTableIndex( $rule );
+        this.validateRandomTableIndex($rule);
     }
 
-    private case( $rule: JQuery<Element> ) {
-        const bounds = randomMechanics.getCaseRuleBounds( $rule );
-        if ( !bounds ) {
-            this.addError( $rule, 'Needs "value" or "from" / "to" attributes' );
+    private case($rule: JQuery<Element>) {
+        const bounds = randomMechanics.getCaseRuleBounds($rule);
+        if (!bounds) {
+            this.addError($rule, 'Needs "value" or "from" / "to" attributes');
             return;
         }
-        if ( bounds[0] > bounds[1] ) {
-            this.addError( $rule, "Wrong range" );
+        if (bounds[0] > bounds[1]) {
+            this.addError($rule, "Wrong range");
         }
     }
 
-    private test( $rule: JQuery<Element> ) {
-        this.validateDisciplinesAttribute( $rule , "hasDiscipline" , true );
-        this.validateObjectIdsAttribute( $rule , "hasObject" , true , false );
-        this.validateBooleanExpression( $rule , "expression" );
-        this.validateSectionsAttribute( $rule , "sectionVisited" , true );
-        this.validateObjectIdsAttribute( $rule , "currentWeapon" , true , true );
-        this.validateObjectIdsAttribute( $rule , "objectOnSection" , true , false );
-        this.validateSectionChoiceAttribute( $rule , "isChoiceEnabled" , false );
-        this.validateObjectIdsAttribute( $rule , "hasWeaponType" , true , false );
+    private test($rule: JQuery<Element>) {
+        this.validateDisciplinesAttribute($rule, "hasDiscipline", true);
+        this.validateObjectIdsAttribute($rule, "hasObject", true, false);
+        this.validateBooleanExpression($rule, "expression");
+        this.validateSectionsAttribute($rule, "sectionVisited", true);
+        this.validateObjectIdsAttribute($rule, "currentWeapon", true, true);
+        this.validateObjectIdsAttribute($rule, "objectOnSection", true, false);
+        this.validateSectionChoiceAttribute($rule, "isChoiceEnabled", false);
+        this.validateObjectIdsAttribute($rule, "hasWeaponType", true, false);
 
-        const circle: string = $rule.attr( "hasCircle" );
-        if ( circle && !LoreCircle.getCircle( circle ) ) {
-            this.addError( $rule , "Wrong circle: " + circle );
+        const circle: string = $rule.attr("hasCircle");
+        if (circle && !LoreCircle.getCircle(circle)) {
+            this.addError($rule, "Wrong circle: " + circle);
         }
 
-        this.validateObjectIdsAttribute( $rule , "hasWeaponskillWith" , false , true );
+        this.validateObjectIdsAttribute($rule, "hasWeaponskillWith", false, true);
 
         // TODO: attribute "isGlobalRuleRegistered". Check the ruleId exists on the current mechanics XML
     }
 
-    private choiceState( $rule: JQuery<Element> ) {
-        this.validateSectionChoiceAttribute( $rule , "section" , true );
+    private choiceState($rule: JQuery<Element>) {
+        this.validateSectionChoiceAttribute($rule, "section", true);
     }
 
-    private object( $rule: JQuery<Element> ) {
-        this.validateObjectIdsAttribute( $rule , "objectId" , false , false );
-        this.validateNumericExpression( $rule , "price" );
+    private object($rule: JQuery<Element>) {
+        this.validateObjectIdsAttribute($rule, "objectId", false, false);
+        this.validateNumericExpression($rule, "price");
     }
 
-    private combat( $rule: JQuery<Element> ) {
-        this.validateNumericExpression( $rule , "combatSkillModifier" );
-        this.validateNumericExpression( $rule , "combatSkillModifierIncrement" );
+    private combat($rule: JQuery<Element>) {
+        this.validateNumericExpression($rule, "combatSkillModifier");
+        this.validateNumericExpression($rule, "combatSkillModifierIncrement");
 
-        if ( $rule.attr("disabledObjects") !== "none" ) {
-            this.validateObjectIdsAttribute( $rule , "disabledObjects" , true , false );
+        if ($rule.attr("disabledObjects") !== "none") {
+            this.validateObjectIdsAttribute($rule, "disabledObjects", true, false);
         }
 
-        this.checkThereAreCombats( $rule );
+        this.checkThereAreCombats($rule);
 
-        const combatIndex = parseInt( $rule.attr("index"), 10 );
-        if ( combatIndex ) {
+        const combatIndex = parseInt($rule.attr("index"), 10);
+        if (combatIndex) {
             const nCombats = this.currentSection.getCombats().length;
-            if ( nCombats <= combatIndex ) {
-                this.addError( $rule , "There is no combat with index " + combatIndex );
+            if (nCombats <= combatIndex) {
+                this.addError($rule, "There is no combat with index " + combatIndex.toString());
             }
         }
 
@@ -535,151 +527,151 @@ export class BookValidator {
             this.addError($rule, "If noPsiSurge attr. is true, noMindblast attribute should be true too");
         }
 
-        if ($rule.attr("noKaiSurge") === "true" && ( $rule.attr("noMindblast") !== "true" || $rule.attr("noPsiSurge") !== "true" ) ) {
+        if ($rule.attr("noKaiSurge") === "true" && ($rule.attr("noMindblast") !== "true" || $rule.attr("noPsiSurge") !== "true")) {
             this.addError($rule, "If noKaiSurge attr. is true, noMindblast and noKaiSurge attributes should be true too");
         }
 
         // TODO: Check attr "noWeapon" is boolean or number
     }
 
-    private afterCombats( $rule: JQuery<Element> ) {
-        this.checkThereAreCombats( $rule );
+    private afterCombats($rule: JQuery<Element>) {
+        this.checkThereAreCombats($rule);
     }
 
-    private afterElude( $rule: JQuery<Element> ) {
-        this.checkThereAreCombats( $rule );
+    private afterElude($rule: JQuery<Element>) {
+        this.checkThereAreCombats($rule);
     }
 
-    private afterCombatTurn( $rule: JQuery<Element> ) {
-        this.checkThereAreCombats( $rule );
+    private afterCombatTurn($rule: JQuery<Element>) {
+        this.checkThereAreCombats($rule);
     }
 
-    private choiceSelected( $rule: JQuery<Element> ) {
-        this.validateSectionChoiceAttribute( $rule , "section" , true );
+    private choiceSelected($rule: JQuery<Element>) {
+        this.validateSectionChoiceAttribute($rule, "section", true);
     }
 
-    private numberPickerChoosed( $rule: JQuery<Element> ) {
-        const $sectionMechanics = this.mechanics.getSection( this.currentSection.sectionId );
-        if ( $sectionMechanics.find( "numberPicker" ).length === 0 ) {
-            this.addError( $rule , 'No "numberPicker" rule found on this section' );
+    private numberPickerChoosed($rule: JQuery<Element>) {
+        const $sectionMechanics = this.mechanics.getSection(this.currentSection.sectionId);
+        if ($sectionMechanics.find("numberPicker").length === 0) {
+            this.addError($rule, 'No "numberPicker" rule found on this section');
         }
     }
 
-    private endurance( $rule: JQuery<Element> ) {
-        this.validateNumericExpression( $rule , "count" );
+    private endurance($rule: JQuery<Element>) {
+        this.validateNumericExpression($rule, "count");
     }
 
-    private resetSectionState( $rule: JQuery<Element> ) {
-        this.validateSectionsAttribute( $rule , "sectionId" , false );
+    private resetSectionState($rule: JQuery<Element>) {
+        this.validateSectionsAttribute($rule, "sectionId", false);
     }
 
-    private message( $rule: JQuery<Element> ) {
+    private message($rule: JQuery<Element>) {
         const msgId: string = $rule.attr("id");
 
-        if ( $rule.attr( "op" ) ) {
-            if ( !msgId ) {
-                this.addError( $rule , '"id" attribute required' );
+        if ($rule.attr("op")) {
+            if (!msgId) {
+                this.addError($rule, '"id" attribute required');
             } else {
                 // Find the referenced message
-                const $sectionMechanics = this.mechanics.getSection( this.currentSection.sectionId );
-                if ( $sectionMechanics.find( "message[id=" + msgId + "]:not([op])" ).length === 0 ) {
-                    this.addError( $rule , 'No "message" found with id ' + msgId );
+                const $sectionMechanics = this.mechanics.getSection(this.currentSection.sectionId);
+                if ($sectionMechanics.find("message[id=" + msgId + "]:not([op])").length === 0) {
+                    this.addError($rule, 'No "message" found with id ' + msgId);
                 }
             }
         } else {
-            if ( msgId ) {
+            if (msgId) {
                 // Check there are no duplicated ids
-                const $sectionMechanics = this.mechanics.getSection( this.currentSection.sectionId );
-                if ( $sectionMechanics.find( "message[id=" + msgId + "]:not([op])" ).length > 1 ) {
-                    this.addError( $rule , 'Multiple "message" with the same id=' + msgId );
+                const $sectionMechanics = this.mechanics.getSection(this.currentSection.sectionId);
+                if ($sectionMechanics.find("message[id=" + msgId + "]:not([op])").length > 1) {
+                    this.addError($rule, 'Multiple "message" with the same id=' + msgId);
                 }
             }
 
-            if ( !$rule.attr( "text" ) ) {
-                this.addError( $rule , '"text" or "op" attribute required' );
+            if (!$rule.attr("text")) {
+                this.addError($rule, '"text" or "op" attribute required');
             }
         }
     }
 
-    private drop( $rule: JQuery<Element> ) {
+    private drop($rule: JQuery<Element>) {
         // Special values:
-        const objectId = $rule.attr( "objectId" );
-        if ( objectId && this.specialDropValues.includes( objectId ) ) {
+        const objectId = $rule.attr("objectId");
+        if (objectId && this.specialDropValues.includes(objectId)) {
             return;
         }
 
-        this.validateObjectIdsAttribute( $rule , "objectId" , true , false );
+        this.validateObjectIdsAttribute($rule, "objectId", true, false);
 
         // TODO: Validate "backpackItemSlots" / "specialItemSlots" property values
         // TODO: "objectId" AND/OR "backpackItemSlots"/"specialItemSlots" should have value
     }
 
-    private disableCombats( $rule: JQuery<Element> ) {
-        this.checkThereAreCombats( $rule );
+    private disableCombats($rule: JQuery<Element>) {
+        this.checkThereAreCombats($rule);
     }
 
-    private currentWeapon( $rule: JQuery<Element> ) {
-        this.validateObjectIdsAttribute( $rule , "objectId" , false , true );
+    private currentWeapon($rule: JQuery<Element>) {
+        this.validateObjectIdsAttribute($rule, "objectId", false, true);
     }
 
-    private sell( $rule: JQuery<Element> ) {
+    private sell($rule: JQuery<Element>) {
 
         const objectId = $rule.attr("objectId");
-        if ( objectId ) {
-            this.validateObjectIdsAttribute( $rule , "objectId" , false , false );
+        if (objectId) {
+            this.validateObjectIdsAttribute($rule, "objectId", false, false);
         }
 
         const cls = $rule.attr("class");
-        if ( cls && cls !== "special" ) {
-            this.addError( $rule , 'Wrong "class" property value' );
+        if (cls && cls !== "special") {
+            this.addError($rule, 'Wrong "class" property value');
         }
 
-        if ( !cls && $rule.attr("except") ) {
-            this.addError( $rule , 'Attribute "except" only applies if "class" is present' );
+        if (!cls && $rule.attr("except")) {
+            this.addError($rule, 'Attribute "except" only applies if "class" is present');
         }
-        this.validateObjectIdsAttribute( $rule , "except" , true , false );
+        this.validateObjectIdsAttribute($rule, "except", true, false);
 
         // "objectId" or "class" are mandatory, and exclusive
-        if ( ( !objectId && !cls ) || ( objectId && cls ) ) {
-            this.addError( $rule , 'One and only one of "objectId" and "class" are mandatory' );
+        if ((!objectId && !cls) || (objectId && cls)) {
+            this.addError($rule, 'One and only one of "objectId" and "class" are mandatory');
         }
     }
 
-    private goToSection( $rule: JQuery<Element> ) {
-        this.validateSectionsAttribute( $rule , "section" , false );
+    private goToSection($rule: JQuery<Element>) {
+        this.validateSectionsAttribute($rule, "section", false);
     }
 
-    private objectUsed( $rule: JQuery<Element> ) {
-        this.validateObjectIdsAttribute( $rule , "objectId" , true , false );
+    private objectUsed($rule: JQuery<Element>) {
+        this.validateObjectIdsAttribute($rule, "objectId", true, false);
     }
 
-    private textToChoice( $rule: JQuery<Element> ) {
-        this.validateSectionsAttribute( $rule , "section" , false );
+    private textToChoice($rule: JQuery<Element>) {
+        this.validateSectionsAttribute($rule, "section", false);
 
         const html = this.currentSection.getHtml();
         const linkText: string = $rule.attr("text");
-        if ( $(html).find(':contains("' + linkText + '")').length === 0 ) {
-            this.addError( $rule , 'Text to replace "' + linkText + '" not found');
+        if ($(html).find(':contains("' + linkText + '")').length === 0) {
+            this.addError($rule, 'Text to replace "' + linkText + '" not found');
         }
     }
 
-    private kaiMonasteryStorage( $rule: JQuery<Element> ) {
+    private kaiMonasteryStorage($rule: JQuery<Element>) {
         // Only available on "equipment" sections
-        if ( $rule.closest( "section[id=equipmnt]" ).length === 0 ) {
-            this.addError( $rule , 'Rule "kaiMonasteryStorage" should be included only on section with id=equipmnt' );
+        if ($rule.closest("section[id=equipmnt]").length === 0) {
+            this.addError($rule, 'Rule "kaiMonasteryStorage" should be included only on section with id=equipmnt');
         }
     }
 
-    private displayIllustration( $rule: JQuery<Element> ) {
-        this.validateSectionsAttribute( $rule , "section" , false );
-        const sectionId: string = $rule.attr( "section" );
-        const section = new Section( this.book , sectionId , this.mechanics );
-        if ( !section.getFirstIllustrationHtml() ) {
-            this.addError( $rule , "There are no illustrations on " + sectionId );
+    private displayIllustration($rule: JQuery<Element>) {
+        this.validateSectionsAttribute($rule, "section", false);
+        const sectionId: string = $rule.attr("section");
+        const section = new Section(this.book, sectionId, this.mechanics);
+        if (!section.getFirstIllustrationHtml()) {
+            this.addError($rule, "There are no illustrations on " + sectionId);
         }
     }
 
-    private use( $rule: JQuery<Element> ) {
-        this.validateObjectIdsAttribute( $rule , "objectId" , true , false );
+    private use($rule: JQuery<Element>) {
+        this.validateObjectIdsAttribute($rule, "objectId", true, false);
     }
 }

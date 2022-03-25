@@ -1,4 +1,5 @@
-import { loadGameController, mechanicsEngine } from "..";
+import { loadGameController } from "../controller/loadGameController";
+import { mechanicsEngine } from "../controller/mechanics/mechanicsEngine";
 
 /**
  * The load game view interface functions
@@ -14,11 +15,12 @@ export const loadGameView = {
      * Bind web file uploader events
      */
     bindFileUploaderEvents() {
-        (<JQuery<HTMLInputElement>> $("#loadGame-file")).on("change", function(e) {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+        (<JQuery<HTMLInputElement>> $("#loadGame-file")).on("change", function() {
             if (!this.files || !this.files[0]) {
                 return;
             }
-            loadGameController.fileUploaderChanged(this.files[0]);
+            loadGameController.getInstance().fileUploaderChanged(this.files[0]);
         });
     },
 

@@ -1,4 +1,5 @@
-import { state, template } from "..";
+import { state } from "../state";
+import { template } from "../template";
 
 /**
  * Info about a current choose
@@ -22,7 +23,7 @@ export class RandomTable {
      * If >= 0, next value to return from the random table, fixed.
      * It's for debug purposes.
      */
-    public nextValueDebug: number = -1;
+    public nextValueDebug = -1;
 
     /**
      * Promise for random number choosing with UI (manual random table).
@@ -36,7 +37,7 @@ export class RandomTable {
      * @param zeroAsTen true if the zero must to be returned as ten
      * @return The random number
      */
-    public getRandomValue(ignoreZero: boolean = false, zeroAsTen: boolean = false): number {
+    public getRandomValue(ignoreZero = false, zeroAsTen = false): number {
         let value: number;
         do {
             if ( this.nextValueDebug >= 0 && this.nextValueDebug <= 9 ) {
@@ -58,7 +59,7 @@ export class RandomTable {
         return value;
     }
 
-    public getRandomValueAsync(zeroAsTen: boolean = false, subtitle = ""): JQueryPromise<number> {
+    public getRandomValueAsync(zeroAsTen = false, subtitle = ""): JQueryPromise<number> {
         if ( !state.actionChart.manualRandomTable ) {
             // Use computer generated random numbers:
             return jQuery.Deferred<number>().resolve( this.getRandomValue(zeroAsTen) ).promise();
@@ -89,9 +90,10 @@ export class RandomTable {
         template.showRandomTable(false);
     }
 
-    public randomTableClosed() {
+    public async randomTableClosed() {
         if(this.currentAsync !== null) {
-            this.currentAsync.deferred.resolve(this.currentAsync.value);
+            if(this.currentAsync.value !== null)
+                await this.currentAsync.deferred.resolve(this.currentAsync.value);
             this.currentAsync = null;
         }
     }

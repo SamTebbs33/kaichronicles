@@ -1,4 +1,8 @@
-import { state, settingsController, translations, setupController, routing, Color } from "..";
+import { settingsController } from "../controller/settingsController";
+import { setupController } from "../controller/setupController";
+import { routing } from "../routing";
+import { Color, state } from "../state";
+import { translations } from "./viewsUtils/translations";
 
 /**
  * Settings view
@@ -10,7 +14,7 @@ export const settingsView = {
         // Color theme
         $("#settings-color-theme").val(Color[state.color]);
         $("#settings-color-theme").on("change", function() {
-            settingsController.changeColorTheme(Color[<string> $(this).val()]);
+            settingsController.getInstance().changeColorTheme(<Color>Color[<string> $(this).val()]);
         });
 
         // Random table type
@@ -30,7 +34,7 @@ export const settingsView = {
         $("#settings-restart").on("click", (e) => {
             e.preventDefault();
             if (confirm(translations.text("confirmRestart"))) {
-                setupController.restartBook();
+                setupController.getInstance().restartBook();
             }
         });
 
@@ -53,14 +57,14 @@ export const settingsView = {
         // Game save button
         $("#settings-save").on("click", (e) => {
             e.preventDefault();
-            $("#settings-saveName").val(settingsController.defaultSaveGameName());
+            $("#settings-saveName").val(settingsController.getInstance().defaultSaveGameName());
             $("#settings-saveDialog").modal("show");
         });
 
         // Save game dialog - save button
         $("#settings-saveBtn").on("click", (e) => {
             e.preventDefault();
-            if (settingsController.saveGame(<string> $("#settings-saveName").val())) {
+            if (settingsController.getInstance().saveGame(<string> $("#settings-saveName").val())) {
                 $("#settings-saveDialog").modal("hide");
             }
         });

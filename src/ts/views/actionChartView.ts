@@ -1,4 +1,12 @@
-import { ActionChart, translations, ObjectsTable, ObjectsTableType, actionChartController, state, GndDiscipline, MoneyDialog, BookSeriesId, Item } from "..";
+import { actionChartController } from "../controller/actionChartController";
+import { ActionChart } from "../model/actionChart";
+import { BookSeriesId } from "../model/bookSeries";
+import { GndDiscipline } from "../model/disciplinesDefinitions";
+import { Item } from "../model/item";
+import { state } from "../state";
+import { MoneyDialog } from "./viewsUtils/moneyDialog";
+import { ObjectsTable, ObjectsTableType } from "./viewsUtils/objectsTable";
+import { translations } from "./viewsUtils/translations";
 
 /**
  * The action chart view API
@@ -36,7 +44,7 @@ export const actionChartView = {
 
         // Bind "Fight unarmed"
         $("#achart-fightUnarmed").on("click", function() {
-            actionChartController.setFightUnarmed( $(this).prop("checked") ? true : false );
+            actionChartController.getInstance().setFightUnarmed( $(this).prop("checked") ? true : false );
         });
 
         // Annotations
@@ -78,7 +86,7 @@ export const actionChartView = {
             if ( !confirm( translations.text(restoreDiscipline === GndDiscipline.Deliverance ? "confirm20EPGrdMaster" : "confirm20EP") ) ) {
                 return;
             }
-            actionChartController.use20EPRestore();
+            actionChartController.getInstance().use20EPRestore();
             actionChartView.updateRestore20EPState();
         });
     },
@@ -111,7 +119,7 @@ export const actionChartView = {
             if ( circles.length === 0 ) {
                 $("#achart-currentCircles").html( "<i>" + translations.text("noneMasculine") + "</i>" );
             } else {
-                const circlesNames: string[] = [];
+                const circlesNames = new Array<string>();
                 for ( const c of actionChart.getLoreCircles() ) {
                     circlesNames.push( c.getDescription() );
                 }
@@ -135,7 +143,7 @@ export const actionChartView = {
 
                 if (disciplineId === bookSeries.weaponskillDiscipline) {
                     // Show selected weapons description
-                    const weapons: string[] = [];
+                    const weapons = new Array<string>();
                     for (const weaponSkill of actionChart.getWeaponSkill()) {
                         weapons.push( state.mechanics.getObject( weaponSkill ).name );
                     }
@@ -157,14 +165,14 @@ export const actionChartView = {
                     "</small></i></td></tr>" );
             }
             // Bind help button events
-            $displines.find("button").on("click", function(e) {
+            $displines.find("button").on("click", function() {
                 $(this).parent().find("i").toggle();
             });
         }
     },
 
     updateMoney() {
-        $("#achart-beltPouch").val( state.actionChart.beltPouch + " " + translations.text("goldCrowns") );
+        $("#achart-beltPouch").val( `${state.actionChart.beltPouch} ${translations.text("goldCrowns")}` );
         // Disable if the player has no money or it's death
         $("#achart-dropmoneybutton").prop( "disabled", state.actionChart.beltPouch <= 0 || state.actionChart.currentEndurance <= 0 );
     },
@@ -187,22 +195,22 @@ export const actionChartView = {
         // Combat skill
         $("#achart-combatSkills").val(
             txtCurrent +
-            state.actionChart.getCurrentCombatSkill() +
-            " / Original: " + state.actionChart.combatSkill );
+            state.actionChart.getCurrentCombatSkill().toString() +
+            " / Original: " + state.actionChart.combatSkill.toString() );
         $("#achart-cs-bonuses").text(
-            actionChartController.getBonusesText( state.actionChart.getCurrentCombatSkillBonuses() ) );
+            actionChartController.getInstance().getBonusesText( state.actionChart.getCurrentCombatSkillBonuses() ) );
 
         // Endurance
-        let txtEndurance = txtCurrent + state.actionChart.currentEndurance;
+        let txtEndurance = txtCurrent + state.actionChart.currentEndurance.toString();
         const max = state.actionChart.getMaxEndurance();
         if ( max !== state.actionChart.endurance ) {
-            txtEndurance += " / Max.: " + max;
+            txtEndurance += " / Max.: " + max.toString();
         }
-        txtEndurance += " / Original: " + state.actionChart.endurance;
+        txtEndurance += " / Original: " + state.actionChart.endurance.toString();
 
         $("#achart-endurance").val( txtEndurance );
         $("#achart-endurance-bonuses").text(
-            actionChartController.getBonusesText( state.actionChart.getEnduranceBonuses() ) );
+            actionChartController.getInstance().getBonusesText( state.actionChart.getEnduranceBonuses() ) );
     },
 
     /**
@@ -254,8 +262,8 @@ export const actionChartView = {
         actionChartView.updateMeals();
 
         // Total number of backpack / special objects
-        $("#achart-backpacktotal").text("(" + state.actionChart.getNBackpackItems() + ")");
-        $("#achart-specialtotal").text("(" + state.actionChart.getNSpecialItems() + ")");
+        $("#achart-backpacktotal").text("(" + state.actionChart.getNBackpackItems().toString() + ")");
+        $("#achart-specialtotal").text("(" + state.actionChart.getNSpecialItems().toString() + ")");
     },
 
     showInventoryMsg(action: string, object: Item, msg: string) {

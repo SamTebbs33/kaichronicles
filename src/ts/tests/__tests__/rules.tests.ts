@@ -1,6 +1,7 @@
 import { GameDriver } from "../gameDriver";
 import { KaiDiscipline, MgnDiscipline, GndDiscipline } from "../../model/disciplinesDefinitions";
-import { Book, Item } from "../..";
+import { Item } from "../../model/item";
+import { Book } from "../../model/book";
 
 // Selenium web driver
 const driver: GameDriver = new GameDriver();

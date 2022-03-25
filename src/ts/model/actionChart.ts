@@ -1,4 +1,17 @@
-import { ActionChartItem, SectionItem, App, state, BookSeriesId, GndDiscipline, MgnDiscipline, KaiDiscipline, Item, translations, Combat, BookSeries, mechanicsEngine, LoreCircle, SetupDisciplines, randomTable, Disciplines, DebugMode } from "..";
+import { App, DebugMode } from "../app";
+import { mechanicsEngine } from "../controller/mechanics/mechanicsEngine";
+import { SetupDisciplines } from "../controller/mechanics/setupDisciplines";
+import { state } from "../state";
+import { translations } from "../views/viewsUtils/translations";
+import { ActionChartItem } from "./actionChartItem";
+import { BookSeriesId, BookSeries } from "./bookSeries";
+import { Combat } from "./combat";
+import { Disciplines } from "./disciplines";
+import { GndDiscipline, MgnDiscipline, KaiDiscipline } from "./disciplinesDefinitions";
+import { Item } from "./item";
+import { LoreCircle } from "./loreCircle";
+import { randomTable } from "./randomTable";
+import { SectionItem } from "./sectionState";
 
 /**
  * Bonus for CS/EP definition
@@ -43,7 +56,7 @@ export class ActionChart {
     public currentEndurance = 0;
 
     /** The player weapons (up to 2) */
-    public weapons: ActionChartItem[] = [];
+    public weapons = new Array<ActionChartItem>();
 
     /**
      * If true, the player will fight with no weapons (hand-to-hand).
@@ -61,10 +74,10 @@ export class ActionChart {
     public meals = 0;
 
     /** Backpack items */
-    public backpackItems: ActionChartItem[] = [];
+    public backpackItems = new Array<ActionChartItem>();
 
     /** Special items */
-    public specialItems: ActionChartItem[] = [];
+    public specialItems = new Array<ActionChartItem>();
 
     /** The player has a backpack? */
     public hasBackpack = true;
@@ -113,12 +126,12 @@ export class ActionChart {
     /**
      * Objects in safekeeping at Kai monastery
      */
-    public kaiMonasterySafekeeping: SectionItem[] = [];
+    public kaiMonasterySafekeeping = new Array<SectionItem>();
 
     /**
      * List of tags
      */
-    public tags: string[] = [];
+    public tags = new Array<string>();
 
     constructor() {
         // Debug fast setup:
@@ -180,7 +193,7 @@ export class ActionChart {
      * @param bow True if we should return the selected bow info. False to return the selected hand-to-hand weapon info.
      * @return The current weapon info. null if the is player has no weapon
      */
-    public getSelectedWeaponItem(bow: boolean = false): Item {
+    public getSelectedWeaponItem(bow = false): Item {
 
         if (bow) {
             return this.getSelectedBow();
@@ -317,7 +330,7 @@ export class ActionChart {
      * @param roundToInteger If true, the total number of objects will be rounded up to a integer (Item.itemCount can have decimals)
      * @returns The number of Special Items
      */
-    public getNSpecialItems(roundToInteger: boolean = true): number {
+    public getNSpecialItems(roundToInteger = true): number {
         let count = 0;
         for (const special of this.specialItems) {
             const o = special.getItem();
@@ -408,7 +421,7 @@ export class ActionChart {
      * the first object with the given objectId will be dropped
      * @returns The dropped item. null if no item was dropped
      */
-    public drop(objectId: string, arrowsCount: number = 0, objectIndex: number = -1): ActionChartItem {
+    public drop(objectId: string, arrowsCount = 0, objectIndex = -1): ActionChartItem {
 
         if (objectId === Item.MEAL) {
             // Special
@@ -460,7 +473,7 @@ export class ActionChart {
      * @param arrowsCount Only for quivers. n. arrows to drop. It must to be >= 0
      * @returns The dropped item. null if no object was dropped
      */
-    private dropByIndex(objectType: string, index: number, arrowsCount: number = 0): ActionChartItem {
+    private dropByIndex(objectType: string, index: number, arrowsCount = 0): ActionChartItem {
         const objectsArray = this.getObjectsByType(objectType);
         if (!objectsArray) {
             return null;
@@ -488,7 +501,7 @@ export class ActionChart {
      * first owned object will be returned
      * @returns The object info. null if it was not found
      */
-    public getActionChartItem(objectId: string, index: number = -1): ActionChartItem {
+    public getActionChartItem(objectId: string, index = -1): ActionChartItem {
         const item = state.mechanics.getObject(objectId);
         if (!item) {
             return null;
@@ -512,7 +525,7 @@ export class ActionChart {
      * @returns The objects of that type. null if the object type was wrong
      */
     private getObjectsByType(objectType: string): ActionChartItem[] {
-        let objectsArray: ActionChartItem[] = null;
+        let objectsArray = new Array<ActionChartItem>();
         switch (objectType) {
             case Item.WEAPON:
                 objectsArray = this.weapons;
@@ -587,7 +600,7 @@ export class ActionChart {
      * @param count Number to increase. Negative to decrease
      * @param permanent True if the increase is permanent (it changes the original endurance)
      */
-    public increaseEndurance(count: number, permanent: boolean = false) {
+    public increaseEndurance(count: number, permanent = false) {
 
         if (permanent) {
             // Change the original endurance
@@ -627,7 +640,7 @@ export class ActionChart {
      * @param bookSeriesId Book series disciplines to check. If not specified or null, current book series disciplines will be checked
      * @returns True if Weaponskill discipline is active for the currently selected hand to hand weapon, or for a owned bow
      */
-    public isWeaponskillActive(bow: boolean = false, bookSeriesId: BookSeriesId = null): boolean {
+    public isWeaponskillActive(bow = false, bookSeriesId: BookSeriesId = null): boolean {
 
         if (bookSeriesId === null) {
             // Current book series
@@ -678,7 +691,7 @@ export class ActionChart {
     private getWeaponCombatSkillBonuses(noWeapon: boolean, bowCombat: boolean, disabledObjectsIds: string[])
         : Bonus[] {
 
-        const bonuses = [];
+        const bonuses = new Array<Bonus>();
         let currentWeapon = this.getSelectedWeaponItem(bowCombat);
 
         // Check if the current weapon is disabled
@@ -695,7 +708,7 @@ export class ActionChart {
         // Weapons
         if (noWeapon || !currentWeapon) {
             // No current weapon:
-            let bonus;
+            let bonus: number;
 
             if (state.book.getBookSeries().id >= BookSeriesId.GrandMaster) {
                 // Grand Master series: No loss
@@ -818,7 +831,7 @@ export class ActionChart {
             mechanicsEngine.runGlobalRules(true, combat);
         }
 
-        const bonuses = [];
+        const bonuses = new Array<Bonus>();
 
         // Current weapon bonuses
         if (!combat.mentalOnly) {
@@ -897,7 +910,7 @@ export class ActionChart {
      * @param callback Function to be called for each object. Parameter is each Item owned by the player
      * @param enumerateWeapons True if weapons should be enumerated
      */
-    private enumerateObjectsAsItems(callback: (o: Item) => void, enumerateWeapons: boolean = false) {
+    private enumerateObjectsAsItems(callback: (o: Item) => void, enumerateWeapons = false) {
         this.enumerateObjects((aItem) => { callback(aItem.getItem()); }, enumerateWeapons);
     }
 
@@ -906,7 +919,7 @@ export class ActionChart {
      * @param callback Function to be called for each object. Parameter is each Item owned by the player
      * @param enumerateWeapons True if weapons should be enumerated
      */
-    private enumerateObjects(callback: (o: ActionChartItem) => void, enumerateWeapons: boolean = false) {
+    private enumerateObjects(callback: (o: ActionChartItem) => void, enumerateWeapons = false) {
 
         const enumerateFunction = (index: number, aItem: ActionChartItem) => {
             if (!aItem.getItem()) {
@@ -929,7 +942,7 @@ export class ActionChart {
      */
     public getEnduranceBonuses(): Bonus[] {
 
-        const bonuses = [];
+        const bonuses = new Array<Bonus>();
         this.enumerateObjectsAsItems((o: Item) => {
             if (o.enduranceEffect) {
                 bonuses.push({
@@ -962,7 +975,7 @@ export class ActionChart {
      */
     public getMealObjects(): string[] {
 
-        const result = [];
+        const result = new Array<string>();
         this.enumerateObjectsAsItems((o: Item) => {
             if (o.isMeal && !result.includes(o.id)) {
                 result.push(o.id);
@@ -977,9 +990,9 @@ export class ActionChart {
      * @param onlyHandToHand If it's true, only hand to hand weapons will be returned
      * @return All weapon objects
      */
-    public getWeaponObjects(onlyHandToHand: boolean = false): Item[] {
+    public getWeaponObjects(onlyHandToHand = false): Item[] {
 
-        const result: Item[] = [];
+        const result = new Array<Item>();
         for (const aChartItem of this.getWeaponAChartItems(onlyHandToHand)) {
             result.push(aChartItem.getItem());
         }
@@ -992,9 +1005,9 @@ export class ActionChart {
      * @param onlyHandToHand If it's true, only hand to hand weapons will be returned
      * @return All weapon objects
      */
-    public getWeaponAChartItems(onlyHandToHand: boolean = false): ActionChartItem[] {
+    public getWeaponAChartItems(onlyHandToHand = false): ActionChartItem[] {
 
-        const result: ActionChartItem[] = [];
+        const result = new Array<ActionChartItem>();
         // Traverse Weapons and Weapon-like objects
         this.enumerateObjects((aChartItem: ActionChartItem) => {
             const o = aChartItem.getItem();
@@ -1193,7 +1206,7 @@ export class ActionChart {
         if (App.debugMode === DebugMode.DEBUG || App.debugMode === DebugMode.TEST) {
             const possibleDisciplines = Disciplines.getSeriesDisciplines(seriesId !== null ? seriesId : state.book.getBookSeries().id);
             if (!possibleDisciplines.includes(disciplineId)) {
-                mechanicsEngine.debugWarning("Disciplines of book series " + seriesId + " do not contains discipline " + disciplineId);
+                mechanicsEngine.debugWarning("Disciplines of book series " + seriesId.toString() + " do not contains discipline " + disciplineId);
             }
         }
         return this.getSeriesDisciplines(seriesId).disciplines.includes(disciplineId);

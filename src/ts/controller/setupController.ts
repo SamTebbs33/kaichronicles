@@ -1,10 +1,33 @@
-import { state, template, routing, views, mechanicsEngine, setupView, ajaxErrorMsg } from "..";
+import { routing } from "../routing";
+import { state } from "../state";
+import { template } from "../template";
+import { views } from "../views";
+import { setupView } from "../views/setupView";
+import { Controller } from "./controllerFactory";
+import { mechanicsEngine } from "./mechanics/mechanicsEngine";
 
 /**
  * The book loader controller
  * TODO: Change the name of this controller. It's a "book setup" controller
  */
-export const setupController = {
+export class setupController implements Controller {
+
+    private static instance: setupController;
+
+    private constructor() {
+        // Set constructor private
+    }
+
+    onLeave() {
+        // Do Nothing
+    }
+
+    public static getInstance(): setupController {
+        if(!this.instance) {
+            this.instance = new this()
+        }
+        return this.instance;
+    }
 
     /** Set up the application
      * This will load the XML book and then redirect to the game
@@ -32,66 +55,36 @@ export const setupController = {
         }
         template.translateMainMenu();
 
-        return views.loadView("setup.html")
-            .then(() => { setupController.runDownloads(); });
+        void views.loadView("setup.html");
+        void this.runDownloads();
+    }
 
-    },
+    async runDownloads() {
+        setupView.log(state.book.getBookXmlURL() + " download started...");
+        await state.book.downloadBookXml();
+        setupView.log(state.book.getBookXmlURL() + " OK!", "ok");
+        
+        setupView.log(state.mechanics.getXmlURL() + " download started...");
+        await state.mechanics.downloadXml();
+        setupView.log(state.mechanics.getXmlURL() + " OK!", "ok");
+        
+        setupView.log(state.mechanics.getObjectsXmlURL() + " download started...");
+        await state.mechanics.downloadObjectsXml();
+        setupView.log(state.mechanics.getObjectsXmlURL() + " OK!", "ok");
+        
+        setupView.log(mechanicsEngine.mechanicsUIURL + " download started...");
+        await mechanicsEngine.downloadMechanicsUI();
+        setupView.log(mechanicsEngine.mechanicsUIURL + " OK!", "ok");
 
-    runDownloads() {
+        setupView.log("Done!");
+        setupView.done();
 
-        const downloads = [];
-        // The book xml
-        downloads.push({
-            url: state.book.getBookXmlURL(),
-            promise: state.book.downloadBookXml()
-        });
-
-        // Game mechanics XML
-        downloads.push({
-            url: state.mechanics.getXmlURL(),
-            promise: state.mechanics.downloadXml()
-        });
-
-        // Objects mechanics XML
-        downloads.push({
-            url: state.mechanics.getObjectsXmlURL(),
-            promise: state.mechanics.downloadObjectsXml()
-        });
-
-        // Load game mechanics UI
-        downloads.push({
-            url: mechanicsEngine.mechanicsUIURL,
-            promise: mechanicsEngine.downloadMechanicsUI()
-        });
-
-        // Stuff to handle each download
-        const promises = [];
-        for (const download of downloads) {
-            setupView.log(download.url + " download started...");
-            download.promise.url = download.url;
-            download.promise
-                .fail(function(jqXHR: JQueryXHR, textStatus: string, errorThrown: string) {
-                    setupView.log(ajaxErrorMsg(download, jqXHR, textStatus, errorThrown), "error");
-                })
-                .done(function() { setupView.log(download.url + " OK!", "ok"); });
-            promises.push(download.promise);
-        }
-
-        // Wait for all downloads
-        $.when(...promises)
-            .done(() => {
-                setupView.log("Done!");
-                setupView.done();
-
-                // Fill the random table UI
-                template.fillRandomTableModal(state.book.bookRandomTable);
-                template.setNavTitle(state.book.getBookTitle(), "#game", false);
-                template.updateStatistics(true);
-                routing.redirect("game");
-            })
-            .fail(() => { setupView.done(); });
-
-    },
+        // Fill the random table UI
+        template.fillRandomTableModal(state.book.bookRandomTable);
+        template.setNavTitle(state.book.getBookTitle(), "#game", false);
+        template.updateStatistics(true);
+        routing.redirect("game");
+    }
 
     restartBook() {
         const bookNumber = state.book.bookNumber;
@@ -101,7 +94,7 @@ export const setupController = {
             bookNumber,
             keepActionChart: true
         });
-    },
+    }
 
     /**
      * Check if the book is already loaded.
@@ -116,9 +109,9 @@ export const setupController = {
             return false;
         }
         return true;
-    },
+    }
 
     /** Return page */
     getBackController() { return "mainMenu"; }
 
-};
+}

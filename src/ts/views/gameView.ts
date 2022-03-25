@@ -1,4 +1,11 @@
-import { Section, App, gameController, state, randomTable, Book, template, numberPickerMechanics, DebugMode } from "..";
+import { App, DebugMode } from "../app";
+import { gameController } from "../controller/gameController";
+import { numberPickerMechanics } from "../controller/mechanics/numberPickerMechanics";
+import { Book } from "../model/book";
+import { randomTable } from "../model/randomTable";
+import { Section } from "../model/section";
+import { state } from "../state";
+import { template } from "../template";
 
 /**
  * The game view interface functions
@@ -55,14 +62,14 @@ export const gameView = {
         // Section navigation events
         $("#game-prevSection").on("click", (e) => {
             e.preventDefault();
-            gameController.onNavigatePrevNext(-1);
+            gameController.getInstance().onNavigatePrevNext(-1);
         });
         $("#game-nextSection").on("click", function(e: JQuery.TriggeredEvent) {
             e.preventDefault();
             if ($(this).hasClass("disabled")) {
                 return;
             }
-            gameController.onNavigatePrevNext(+1);
+            gameController.getInstance().onNavigatePrevNext(+1);
         });
 
         // Show book copyright
@@ -74,20 +81,20 @@ export const gameView = {
 
             $("#game-debugJump").on("submit", (e) => {
                 e.preventDefault();
-                gameController.loadSection(<string> $("#game-debugNSection").val());
+                gameController.getInstance().loadSection(<string> $("#game-debugNSection").val());
             });
 
             $("#game-debugRandomTable").on("submit", (e) => {
                 e.preventDefault();
                 randomTable.nextValueDebug = parseInt(<string> $("#game-debugRandomFix").val(), 10);
-                console.log("Next random table value set to " + randomTable.nextValueDebug);
+                console.log(`Next random table value set to ${randomTable.nextValueDebug}`);
                 $("#game-debugRandomFix").val("");
             });
 
             $("#game-resetSection").on("click", (e) => {
                 e.preventDefault();
                 state.sectionStates.resetSectionState(state.sectionStates.currentSection);
-                gameController.loadSection(state.sectionStates.currentSection);
+                gameController.getInstance().loadSection(state.sectionStates.currentSection);
             });
 
             $("#game-goDisciplines").on("click", (e) => {
@@ -98,7 +105,7 @@ export const gameView = {
 
                 // Keep the current section, to ease the go-back
                 $("#game-debugNSection").val(state.sectionStates.currentSection);
-                gameController.loadSection(Book.DISCIPLINES_SECTION);
+                gameController.getInstance().loadSection(Book.DISCIPLINES_SECTION);
             });
         }
 
@@ -113,7 +120,7 @@ export const gameView = {
      * - 'afterTitle': After section title
      */
     // appendToSection: function(html : any, afterChoices : boolean = false) {
-    appendToSection(html: string|JQuery<HTMLElement>, where: string = "beforeChoices") {
+    appendToSection(html: string|JQuery<HTMLElement>, where = "beforeChoices") {
 
         if (where === "beforeChoices") {
             // Try to add the html before the first choice:
@@ -149,7 +156,7 @@ export const gameView = {
         // by game rules
         $("#game-section").off("click", ".choice a.choice-link");
         $("#game-section").on("click", ".choice a.choice-link", function(e) {
-            gameView.choiceLinkClicked(e, this);
+            gameView.choiceLinkClicked(e, <HTMLElement> this);
         });
 
         gameView.bindCombatTablesLinks();
@@ -166,7 +173,7 @@ export const gameView = {
      * Called when a choice link is clicked
      * @param {DOM} link The clicked link
      */
-    choiceLinkClicked(e: JQuery.TriggeredEvent, link: any) {
+    choiceLinkClicked(e: JQuery.TriggeredEvent, link: HTMLElement) {
         e.preventDefault();
 
         // Validate money picker, if there is. If its not valid, don't follow with this link
@@ -177,7 +184,7 @@ export const gameView = {
         const section = $(link).attr("data-section");
         // console.log('Jump to section ' + section);
         if (section) {
-            gameController.loadSection(section, true);
+            gameController.getInstance().loadSection(section, true);
         }
     },
 

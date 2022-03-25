@@ -1,4 +1,10 @@
-import { state, mechanicsEngine, gameView, KaiDiscipline, MgnDiscipline, GndDiscipline, actionChartController, translations, template } from "../..";
+import { KaiDiscipline, MgnDiscipline, GndDiscipline } from "../../model/disciplinesDefinitions";
+import { state } from "../../state";
+import { template } from "../../template";
+import { gameView } from "../../views/gameView";
+import { translations } from "../../views/viewsUtils/translations";
+import { actionChartController } from "../actionChartController";
+import { mechanicsEngine } from "./mechanicsEngine";
 
 /**
  * Meal mechanics
@@ -95,9 +101,9 @@ export class MealMechanics {
 
             const option = <string> $(mealSelector + " input[name=" + mealOptionId + "]:checked").val();
             if (option === "meal") {
-                actionChartController.drop("meal", false);
+                actionChartController.getInstance().drop("meal", false);
             } else if (option === "doNotEat") {
-                actionChartController.increaseEndurance(-3);
+                actionChartController.getInstance().increaseEndurance(-3);
             } else if (option === "hunting") {
                 // Do nothing
             } else if (option === "buyMeal") {
@@ -106,16 +112,16 @@ export class MealMechanics {
                     alert(translations.text("noEnoughMoney"));
                     return;
                 }
-                actionChartController.increaseMoney(-price);
+                actionChartController.getInstance().increaseMoney(-price);
             } else {
                 // Eat object (option is the object id)
                 const item = state.mechanics.getObject(option);
                 if (item && item.usage) {
                     // Use / eat the object
-                    actionChartController.use(option, true);
+                    actionChartController.getInstance().use(option, true);
                 } else {
                     // Drop the selected object
-                    actionChartController.drop(option, false);
+                    actionChartController.getInstance().drop(option, false);
                 }
             }
 

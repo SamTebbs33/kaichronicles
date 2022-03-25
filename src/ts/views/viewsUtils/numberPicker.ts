@@ -1,28 +1,28 @@
-
-import { state, translations, mechanicsEngine } from "../..";
+import { state } from "../../state";
+import { translations } from "./translations";
 
 /**
  * Declare jQuery functions for number fields
  */
 export function declareJqueryNumberFunctions() {
     // tslint:disable-next-line: only-arrow-functions
-    (function( $ ) {
+    (function ($) {
 
         /**
          * Returns the number value, or NaN
          */
-        $.fn.getNumber = function() {
+        $.fn.getNumber = function (this: JQuery) {
             const txtVal = this.val();
-            if ( !txtVal ) {
+            if (!txtVal) {
                 return 0;
             }
-            return parseInt( txtVal, 10 );
+            return parseInt(<string>txtVal, 10);
         };
 
         /**
          * Set the number value
          */
-        $.fn.setNumber = function(value) {
+        $.fn.setNumber = function (this: JQuery, value: number) {
             this.val(value);
             this.fireValueChanged();
         };
@@ -30,33 +30,33 @@ export function declareJqueryNumberFunctions() {
         /**
          * Get the title for this field
          */
-        $.fn.getTitle = function() {
+        $.fn.getTitle = function (this: JQuery) {
             return $("label[for='" + this.attr("id") + "']").text();
         };
 
         /**
          * Bind number events
          */
-        $.fn.bindNumberEvents = function() {
+        $.fn.bindNumberEvents = function (this: JQuery) {
             this.parent().find("button.add-number").on("click", (e) => {
                 e.preventDefault();
                 let n = this.getNumber();
-                if ( isNaN(n) ) {
+                if (isNaN(n)) {
                     return;
                 }
                 n++;
-                if ( n <= this.getMaxValue() ) {
+                if (n <= this.getMaxValue()) {
                     this.setNumber(n);
                 }
             });
             this.parent().find("button.sub-number").on("click", (e) => {
                 e.preventDefault();
                 let n = this.getNumber();
-                if ( isNaN(n) ) {
+                if (isNaN(n)) {
                     return;
                 }
                 n--;
-                if ( n >= this.getMinValue() ) {
+                if (n >= this.getMinValue()) {
                     this.setNumber(n);
                 }
             });
@@ -68,11 +68,10 @@ export function declareJqueryNumberFunctions() {
         /**
          * Event called when the number picker has changed
          */
-        $.fn.fireValueChanged = function() {
-            // console.log('fireValueChanged');
+        $.fn.fireValueChanged = function (this: JQuery) {
             try {
                 const sectionState = state.sectionStates.getSectionState();
-                sectionState.numberPickersState[ this.attr("id") ] = this.val();
+                sectionState.numberPickersState.set(this.attr("id"), this.val());
             } catch (e) {
                 mechanicsEngine.debugWarning(e);
             }
@@ -81,9 +80,9 @@ export function declareJqueryNumberFunctions() {
         /**
          * Returns the minimum value for this field
          */
-        $.fn.getMinValue = function() {
-            const min = parseInt( this.attr("min"), 10 );
-            if ( isNaN(min) ) {
+        $.fn.getMinValue = function (this: JQuery) {
+            const min = parseInt(this.attr("min"), 10);
+            if (isNaN(min)) {
                 return -99999999;
             }
             return min;
@@ -92,9 +91,9 @@ export function declareJqueryNumberFunctions() {
         /**
          * Returns the maximum value for this field
          */
-        $.fn.getMaxValue = function() {
-            const max = parseInt( this.attr("max"), 10 );
-            if ( isNaN(max) ) {
+        $.fn.getMaxValue = function (this: JQuery) {
+            const max = parseInt(this.attr("max"), 10);
+            if (isNaN(max)) {
                 return 99999999;
             }
             return max;
@@ -103,30 +102,30 @@ export function declareJqueryNumberFunctions() {
         /**
          * Return true if the number is valid
          */
-        $.fn.isValid = function() {
+        $.fn.isValid = function (this: JQuery) {
             const num = this.getNumber();
 
-            if ( isNaN(num) ) {
-                alert( translations.text("npWrongValue" , [this.getTitle()] ) );
+            if (isNaN(num)) {
+                alert(translations.text("npWrongValue", [this.getTitle()]));
                 return false;
             }
 
             const min = this.getMinValue();
-            if ( num < min ) {
-                alert( translations.text( "npMinValue" , [ this.getTitle() , min ] ) );
+            if (num < min) {
+                alert(translations.text("npMinValue", [this.getTitle(), min]));
                 return false;
             }
 
             const max = this.getMaxValue();
-            if ( num > max ) {
-                alert( translations.text( "npMaxValue" , [ this.getTitle() , max ] ) );
+            if (num > max) {
+                alert(translations.text("npMaxValue", [this.getTitle(), max]));
                 return false;
             }
 
-            if ( this.attr("data-ismoneypicker") === "true" ) {
+            if (this.attr("data-ismoneypicker") === "true") {
                 // Check if you have enough money
-                if ( state.actionChart.beltPouch < num) {
-                    alert( translations.text( "noEnoughMoney" ) );
+                if (state.actionChart.beltPouch < num) {
+                    alert(translations.text("noEnoughMoney"));
                     return false;
                 }
             }
@@ -138,7 +137,7 @@ export function declareJqueryNumberFunctions() {
          * Enable / disable the number picker
          * @param {boolean} enabled True to enable, false to disable
          */
-        $.fn.setEnabled = function(enabled) {
+        $.fn.setEnabled = function (this: JQuery, enabled) {
             this.prop("disabled", !enabled);
             this.parent().find("button.add-number").prop("disabled", !enabled);
             this.parent().find("button.sub-number").prop("disabled", !enabled);
@@ -147,27 +146,27 @@ export function declareJqueryNumberFunctions() {
         /**
          * Return true if the number picker is enabled
          */
-        $.fn.isEnabled = function() {
+        $.fn.isEnabled = function (this: JQuery) {
             return !this.prop("disabled");
         };
 
         /**
          * Set the initial value of the picker
          */
-        $.fn.initializeValue = function() {
+        $.fn.initializeValue = function (this: JQuery) {
             // Check if there is a number recorded on the section
             const sectionState = state.sectionStates.getSectionState();
-            const lastValue = sectionState.numberPickersState[ this.attr("id") ];
-            if ( lastValue ) {
-                this.val( lastValue );
+            const lastValue = sectionState.numberPickersState.get(this.attr("id"));
+            if (lastValue) {
+                this.val(lastValue);
             } else {
                 // Try to set the minimum value
-                const min = this.attr( "min" );
-                if ( min ) {
-                    this.val( min );
+                const min = this.attr("min");
+                if (min) {
+                    this.val(min);
                 }
             }
         };
 
-    }( jQuery ));
+    }(jQuery));
 }

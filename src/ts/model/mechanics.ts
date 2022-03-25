@@ -1,4 +1,7 @@
-import { Book, Item, App, mechanicsEngine, DebugMode } from "..";
+import { App, DebugMode } from "../app";
+import { mechanicsEngine } from "../controller/mechanics/mechanicsEngine";
+import { Book } from "./book";
+import { Item } from "./item";
 
 /**
  * Game mechanics and objects handling for a given book
@@ -23,7 +26,7 @@ export class Mechanics {
     /**
      * The game objects XML document
      */
-    public objectsXml: any = null;
+    public objectsXml: XMLDocument = null;
 
     /** Cache of book objects.
      * Key is the object id. Value is the object Item
@@ -61,7 +64,7 @@ export class Mechanics {
      * Returns the book XML URL
      */
     public getXmlURL(): string {
-        return "data/mechanics-" + this.book.bookNumber + ".xml";
+        return "data/mechanics-" + this.book.bookNumber.toString() + ".xml";
     }
 
     /** Set mechanics XML */
@@ -73,14 +76,10 @@ export class Mechanics {
      * Start the download of the objects XML
      * @return Promise with the download
      */
-    public downloadObjectsXml(): JQueryXHR {
-
-        return $.get({
+    public async downloadObjectsXml() {
+        this.objectsXml = <XMLDocument> await $.get({
             url: this.getObjectsXmlURL(),
             dataType: "xml",
-        })
-        .done((xml) => {
-            this.objectsXml = xml;
         });
     }
 
@@ -199,7 +198,7 @@ export class Mechanics {
      * Return the id of the book last section
      */
     public getLastSectionId(): string {
-        return "sect" + this.getSectionsCount();
+        return "sect" + this.getSectionsCount().toString();
     }
 
 }

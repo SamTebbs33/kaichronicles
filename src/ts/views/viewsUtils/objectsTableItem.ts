@@ -1,4 +1,14 @@
-import { SectionItem, Item, ObjectsTableType, state, translations, routing, kaimonasteryController, MoneyDialog, actionChartController, mechanicsEngine, template } from "../..";
+import { actionChartController } from "../../controller/actionChartController";
+import { kaimonasteryController } from "../../controller/kaimonasteryController";
+import { mechanicsEngine } from "../../controller/mechanics/mechanicsEngine";
+import { Item } from "../../model/item";
+import { SectionItem } from "../../model/sectionState";
+import { routing } from "../../routing";
+import { state } from "../../state";
+import { template } from "../../template";
+import { MoneyDialog } from "./moneyDialog";
+import { ObjectsTableType } from "./objectsTable";
+import { translations } from "./translations";
 
 /**
  * Item on a objects table to render
@@ -75,29 +85,29 @@ export class ObjectsTableItem {
             const count = ( this.objectInfo.count ? this.objectInfo.count : 0 );
             // In INVENTORY always show "0 arrows", but not in SELL or AVAILABLE (ugly)
             if ( count > 0 || this.type === ObjectsTableType.INVENTORY ) {
-                name += " (" + count + " " + translations.text("arrows") + ")";
+                name += ` (${count} ${translations.text("arrows")})`;
             }
         }
 
         // Arrow amount
         if ( this.objectInfo.id === Item.ARROW && this.objectInfo.count ) {
-            name = this.objectInfo.count + " " + name;
+            name = `${this.objectInfo.count} ${name}`;
         }
 
         // Money amount
         if ( this.objectInfo.id === Item.MONEY && this.objectInfo.count ) {
-            name += " (" + this.objectInfo.count + " " + translations.text("goldCrowns") + ")";
+            name += ` (${this.objectInfo.count} ${translations.text("goldCrowns")})`;
         }
 
         // Buy / sell price
         if ( this.objectInfo.price ) {
-            name += " (" + this.objectInfo.price + " " + translations.text("goldCrowns") + ")";
+            name += ` (${this.objectInfo.price} ${translations.text("goldCrowns")})`;
         }
 
         // Buy X objects for a given price
         if ( this.objectInfo.id !== Item.MONEY && this.objectInfo.id !== Item.ARROW && this.objectInfo.id !== Item.QUIVER &&
             this.objectInfo.price > 0 && this.objectInfo.count > 1 ) {
-            name = this.objectInfo.count + " x " + name;
+            name = `${this.objectInfo.count} x ${name}`;
         }
 
         // Object Image
@@ -152,11 +162,11 @@ export class ObjectsTableItem {
         if ( this.item.id === Item.QUIVER || this.item.id === Item.ARROW || this.item.id === Item.MONEY ||
             ( this.objectInfo.price > 0 && this.objectInfo.count > 0 ) ) {
             // Store the number of arrows on the quiver / gold crowns / number of items to buy by the given price
-            link += 'data-count="' + this.objectInfo.count + '" ';
+            link += `data-count="${this.objectInfo.count}" `;
         }
 
         if ( this.objectInfo.price ) {
-            link += 'data-price="' + this.objectInfo.price + '" ';
+            link += `data-price="${this.objectInfo.price}" `;
         }
 
         if ( this.objectInfo.unlimited ) {
@@ -311,6 +321,7 @@ export class ObjectsTableItem {
         if ( !this[op] ) {
             throw "Unknown operation: " + op ;
         } else {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             this[op]();
         }
     }
@@ -357,7 +368,7 @@ export class ObjectsTableItem {
             }
 
             for (let i = 0; i < nItems; i++) {
-                 if ( actionChartController.pickFromUi( this.objectInfo ) ) {
+                 if ( actionChartController.getInstance().pickFromUi( this.objectInfo ) ) {
                     objectPicked = true;
                  }
             }
@@ -369,7 +380,7 @@ export class ObjectsTableItem {
 
             if ( this.item.id === Item.QUIVER || this.item.id === Item.ARROW ) {
                 // Increase the number of arrows on the action chart
-                const realIncrement = actionChartController.increaseArrows( this.objectInfo.count );
+                const realIncrement = actionChartController.getInstance().increaseArrows( this.objectInfo.count );
                 if ( this.item.id === Item.ARROW ) {
                     // Track real number of arrows picked
                     countPicked = realIncrement;
@@ -378,7 +389,7 @@ export class ObjectsTableItem {
 
             if ( this.item.id === Item.MONEY ) {
                 // Pick the money
-                countPicked = actionChartController.increaseMoney( this.objectInfo.count );
+                countPicked = actionChartController.getInstance().increaseMoney( this.objectInfo.count );
             }
 
             if ( !this.objectInfo.unlimited ) {
@@ -389,7 +400,7 @@ export class ObjectsTableItem {
 
             if ( this.objectInfo.price ) {
                 // Pay the price
-                actionChartController.increaseMoney( - this.objectInfo.price );
+                actionChartController.getInstance().increaseMoney( - this.objectInfo.price );
             }
 
             // Refresh the table of available objects
@@ -407,11 +418,11 @@ export class ObjectsTableItem {
 
         if ( this.item.id === Item.ARROW && this.objectInfo.count > 0 ) {
             // Drop arrows
-            actionChartController.increaseArrows( -this.objectInfo.count );
+            actionChartController.getInstance().increaseArrows( -this.objectInfo.count );
         } else {
-            actionChartController.drop( this.item.id , false , true );
+            actionChartController.getInstance().drop( this.item.id , false , true );
         }
-        actionChartController.increaseMoney( this.objectInfo.price );
+        actionChartController.getInstance().increaseMoney( this.objectInfo.price );
         mechanicsEngine.fireInventoryEvents(true, this.item);
     }
 
@@ -424,7 +435,7 @@ export class ObjectsTableItem {
 
         // Use the object
         const dropObject = ( this.type === ObjectsTableType.INVENTORY );
-        actionChartController.use(this.item.id, dropObject, this.index);
+        actionChartController.getInstance().use(this.item.id, dropObject, this.index);
 
         // If the object was used from the section, decrease its usageCount in section
         if ( this.type === ObjectsTableType.AVAILABLE && !this.objectInfo.unlimited ) {
@@ -445,13 +456,13 @@ export class ObjectsTableItem {
 
     private drop() {
         if ( confirm( translations.text( "confirmDrop" , [this.item.name] ) ) ) {
-            actionChartController.drop( this.item.id , true , true , this.objectInfo.count , this.index );
+            actionChartController.getInstance().drop( this.item.id , true , true , this.objectInfo.count , this.index );
         }
     }
 
     private currentWeapon() {
         // Set the active weapon
-        actionChartController.setSelectedWeapon( this.item.id );
+        actionChartController.getInstance().setSelectedWeapon( this.item.id );
     }
 
     private details() {

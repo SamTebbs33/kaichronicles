@@ -1,4 +1,5 @@
-import { declareJqueryNumberFunctions } from ".";
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { declareJqueryNumberFunctions } from "./views/viewsUtils/numberPicker";
 
 /** Declare helper members for global types */
 export function declareCommonHelpers(declareJqueryPlugins: boolean = true) {
@@ -6,13 +7,13 @@ export function declareCommonHelpers(declareJqueryPlugins: boolean = true) {
     /****************** STRING ******************/
 
     if (typeof String.prototype.escapeRegExp !== "function") {
-        String.prototype.escapeRegExp = function() {
+        String.prototype.escapeRegExp = function(this: string) {
             return this.replace(/([.*+?^=!:${}()|[\]/\\])/g, "\\$1");
         };
     }
 
     if (typeof String.prototype.replaceAll !== "function") {
-        String.prototype.replaceAll = function(find, replace) {
+        String.prototype.replaceAll = function(this: string, find, replace) {
             return this.replace( new RegExp( find.escapeRegExp(), "g"), replace );
         };
     }
@@ -77,34 +78,18 @@ export function declareCommonHelpers(declareJqueryPlugins: boolean = true) {
         };
     }
 
-    if (!Array.prototype.clone) {
-        Array.prototype.clone = function() {
-            return this.slice(0);
-        };
-    }
-
     if (!Array.prototype.deepClone) {
         Array.prototype.deepClone = function() {
             const copy = [];
             for (const element of this) {
                 copy.push( element.clone ? element.clone() : element );
             }
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return copy;
         };
     }
 
     /****************** WINDOW ******************/
-
-    if (typeof Window !== "undefined" && typeof Window.prototype.getUrlParameter !== "function") {
-        /**
-         * Get a parameter value of the current URL
-         * @param sParam The parameter name to get (String)
-         * @return The parameter value (string). null if it was not found
-         */
-        Window.prototype.getUrlParameter = (sParam) => {
-            return window.location.search.substring(1).getUrlParameter(sParam);
-        };
-    }
 
     if (declareJqueryPlugins) {
         declareJqueryNumberFunctions();
@@ -146,7 +131,5 @@ export function ajaxErrorMsg(context, jqXHR:JQueryXHR, textStatus:string, errorT
  * @returns {Promise} The rejected promise
  */
 export function ajaxErrorPromise(context, jqXHR:JQueryXHR, textStatus:string, errorThrown:string) {
-    const dfd = jQuery.Deferred();
-    dfd.reject( ajaxErrorMsg(context, jqXHR, textStatus, errorThrown) );
-    return dfd.promise();
+    return ajaxErrorMsg(context, jqXHR, textStatus, errorThrown);
 }

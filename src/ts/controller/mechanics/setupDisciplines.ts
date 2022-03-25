@@ -1,4 +1,13 @@
-import { ActionChart, state, gameView, mechanicsEngine, BookSeriesId, App, BookSeries, translations, KaiDiscipline, template, randomTable, DebugMode } from "../..";
+import { App, DebugMode } from "../../app";
+import { ActionChart } from "../../model/actionChart";
+import { BookSeriesId, BookSeries } from "../../model/bookSeries";
+import { KaiDiscipline } from "../../model/disciplinesDefinitions";
+import { randomTable } from "../../model/randomTable";
+import { state } from "../../state";
+import { template } from "../../template";
+import { gameView } from "../../views/gameView";
+import { translations } from "../../views/viewsUtils/translations";
+import { mechanicsEngine } from "./mechanicsEngine";
 
 /**
  * Setup player disciplines
@@ -81,7 +90,7 @@ export class SetupDisciplines {
             })
             // Set events when checkboxes are clicked
             .find("input[type=checkbox]")
-            .on("click", function(e) {
+            .on("click", function (e) {
                 self.onDiscliplineCheckBoxClick(e, $(this));
             });
 
@@ -127,7 +136,9 @@ export class SetupDisciplines {
             const selected: boolean = state.actionChart.getWeaponSkill().includes(weaponsTable[i]);
             const $chk = $checkboxDiv.find("input");
             $chk.attr("id", SetupDisciplines.WEAPON_CHECKBOX_ID + weaponItem.id);
-            $chk.attr("checked", selected);
+            if (selected) {
+                $chk.attr("checked", "checked");
+            }
 
             html += $checkboxDiv[0].outerHTML;
 
@@ -142,8 +153,8 @@ export class SetupDisciplines {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self = this;
         $well.find("input.weaponmastery-chk")
-        .on("click", function(e: JQuery.TriggeredEvent) {
-            self.onWeaponmasteryWeaponClick(e, $(this));
+            .on("click", function (e: JQuery.TriggeredEvent) {
+                self.onWeaponmasteryWeaponClick(e, $(this));
             });
 
         // Set the initial state
@@ -161,8 +172,6 @@ export class SetupDisciplines {
         if (bookSeries.id < BookSeriesId.Magnakai) {
             return;
         }
-
-        const disable: boolean = false;
 
         // If Weaponmastery is not selected, disable all weapons
         if (!state.actionChart.hasDiscipline(bookSeries.weaponskillDiscipline)) {
@@ -214,8 +223,8 @@ export class SetupDisciplines {
      */
     private onWeaponmasteryWeaponClick(e: JQuery.TriggeredEvent, $checkBox: JQuery<HTMLElement>) {
 
-        const selected: boolean = $checkBox.prop("checked");
-        const weaponId: string = $checkBox.closest(".weaponmastery-weapon").attr("id");
+        const selected = <boolean>$checkBox.prop("checked");
+        const weaponId = $checkBox.closest(".weaponmastery-weapon").attr("id");
 
         if (selected) {
             // Check the maximum weapons number
@@ -269,7 +278,7 @@ export class SetupDisciplines {
     private onDiscliplineCheckBoxClick(e: JQuery.TriggeredEvent, $checkBox: JQuery<HTMLElement>) {
 
         // Limit the number of disciplines. Unlimited on debug mode
-        const selected: boolean = $checkBox.prop("checked");
+        const selected = <boolean>$checkBox.prop("checked");
         if (selected && this.getAllDisciplinesSelected() && App.debugMode !== DebugMode.DEBUG) {
             e.preventDefault();
             alert(translations.text("maxDisciplines", [this.expectedNDisciplines]));
@@ -296,7 +305,7 @@ export class SetupDisciplines {
 
         if (disciplineId === KaiDiscipline.Weaponskill) {
             // Special case for kai series: Choose on the random table the weapon
-            this.chooseWeaponskillWeapon(e);
+            void this.chooseWeaponskillWeapon(e);
             return;
         }
 
@@ -340,7 +349,7 @@ export class SetupDisciplines {
      * Do the random choice for Weaponskill weapon.
      * Only applies to Kai series
      */
-    private chooseWeaponskillWeapon(e: JQuery.TriggeredEvent) {
+    private async chooseWeaponskillWeapon(e: JQuery.TriggeredEvent) {
 
         if (state.actionChart.getWeaponSkill().length > 0) {
             // Weapon already choosed
@@ -354,23 +363,21 @@ export class SetupDisciplines {
         }
 
         // Pick a  random number
-        randomTable.getRandomValueAsync()
-            .then((value: number) => {
+        const value = await randomTable.getRandomValueAsync();
 
-                // Store the discipline
-                state.actionChart.getDisciplines().push(KaiDiscipline.Weaponskill);
-                state.actionChart.getWeaponSkill().push(SetupDisciplines.kaiWeapons[value]);
+        // Store the discipline
+        state.actionChart.getDisciplines().push(KaiDiscipline.Weaponskill);
+        state.actionChart.getWeaponSkill().push(SetupDisciplines.kaiWeapons[value]);
 
-                // Show on UI the selected weapon
-                this.setWeaponSkillWeaponNameOnUI();
-                const $well = $("#wepnskll .well");
-                $well.append("<div><i><small>" + translations.text("randomTable") + ": " + value + "</small></i></div>");
+        // Show on UI the selected weapon
+        this.setWeaponSkillWeaponNameOnUI();
+        const $well = $("#wepnskll .well");
+        $well.append("<div><i><small>" + translations.text("randomTable") + ": " + value.toString() + "</small></i></div>");
 
-                // Mark the checkbox
-                $well.find("input[type=checkbox]").prop("checked", true);
+        // Mark the checkbox
+        $well.find("input[type=checkbox]").prop("checked", true);
 
-                this.afterDisciplineSelection();
-            });
+        this.afterDisciplineSelection();
     }
 
     /**

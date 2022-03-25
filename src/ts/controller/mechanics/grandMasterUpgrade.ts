@@ -1,4 +1,11 @@
-import { state, BookSeriesId, gameView, mechanicsEngine, translations, actionChartController, template, gameController } from "../..";
+import { BookSeriesId } from "../../model/bookSeries";
+import { state } from "../../state";
+import { template } from "../../template";
+import { gameView } from "../../views/gameView";
+import { translations } from "../../views/viewsUtils/translations";
+import { actionChartController } from "../actionChartController";
+import { gameController } from "../gameController";
+import { mechanicsEngine } from "./mechanicsEngine";
 
 /** Upgrade stats at Grand Master beginning */
 export class GrandMasterUpgrade {
@@ -44,24 +51,21 @@ export class GrandMasterUpgrade {
             state.actionChart.currentEndurance = 0;
             state.actionChart.setDisciplines([], BookSeriesId.Kai);
             state.actionChart.setDisciplines([], BookSeriesId.Magnakai);
-
         } else if (option === "reroll") {
             state.actionChart.combatSkill = 0;
             state.actionChart.endurance = 0;
             state.actionChart.currentEndurance = 0;
-
         } else if (option === "increasestats") {
             state.actionChart.combatSkill += 15;
             state.actionChart.endurance += 10;
             state.actionChart.currentEndurance += 10;
-
         } else if (option === "newplayer") {
             state.actionChart.combatSkill = 0;
             state.actionChart.endurance = 0;
             state.actionChart.currentEndurance = 0;
             state.actionChart.setDisciplines([], BookSeriesId.Kai);
             state.actionChart.setDisciplines([], BookSeriesId.Magnakai);
-            actionChartController.drop("all");
+            actionChartController.getInstance().drop("all");
             state.actionChart.hasBackpack = true;
         }
 
@@ -71,7 +75,7 @@ export class GrandMasterUpgrade {
         state.sectionStates.markRuleAsExecuted(rule);
 
         // Re-render the section
-        gameController.loadSection(state.sectionStates.currentSection, false, window.pageYOffset);
+        gameController.getInstance().loadSection(state.sectionStates.currentSection, false, window.pageYOffset);
 
         toastr.info(translations.text("gmupgrade-applied"));
     }

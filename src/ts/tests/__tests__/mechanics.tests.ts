@@ -69,7 +69,7 @@ test("Psi Surge Magnakai series - Mentora", async () => {
     await driver.setupBookState(6);
 
     // Mentora = 9 disciplines
-    const disciplines = Disciplines.getSeriesDisciplines(BookSeriesId.Magnakai).clone();
+    const disciplines = Disciplines.getSeriesDisciplines(BookSeriesId.Magnakai).slice();
     disciplines.removeValue(MgnDiscipline.Divination);
     await driver.setDisciplines( disciplines , BookSeriesId.Magnakai );
 

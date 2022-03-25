@@ -1,9 +1,15 @@
-import { state } from "..";
+import { state } from "../state";
+
+interface CombatTable {
+    [randomResult: number]: {
+        [ration: number]: number[]
+    };
+}
 
 /**
  * Combat result for death
  */
-export const COMBATTABLE_DEATH = "D";
+export const COMBATTABLE_DEATH = -9999;
 
 /**
  * The combat table
@@ -13,7 +19,7 @@ export const combatTable = {
     /**
      * Combat table results when the combat ratio is <= 0
      */
-    tableBelowOrEqualToEnemy: {
+    tableBelowOrEqualToEnemy: <CombatTable>{
 
         // Random table result = 1
         1: {
@@ -129,7 +135,7 @@ export const combatTable = {
     /**
      * Combat table results when the combat ratio is > 0
      */
-    tableAboveEnemy: {
+    tableAboveEnemy: <CombatTable>{
 
         // Random table result = 1
         1: {
@@ -329,38 +335,9 @@ export const combatTable = {
      * @returns Array with endurance points loses, or COMBATTABLE_DEATH. Index 0 is the
      * EP enemy loss. Index 1 is the Lone Wolf loss
      */
-    getCombatTableResult(combatRatio: number, randomTableValue: number): any[] {
-        /*
-        var ponderatedIndex = combatRatio / 2.0;
-        // check if we're using the extended CRT or not and set max column
-        var maxPonderatedIndex = state.actionChart.extendedCRT ? 15 : 6;
-        // Set to the right column
-        if( ponderatedIndex < 0) {
-            // round -4.5 to -5
-            ponderatedIndex = Math.floor(ponderatedIndex);
-        } else if( ponderatedIndex > 0) {
-            // round 4.5 to 5
-            ponderatedIndex = Math.ceil(ponderatedIndex);
-        }
-        // stick to min and max columns
-        if( ponderatedIndex < -6 ) {
-            ponderatedIndex  = -6;
-        } else if( ponderatedIndex > maxPonderatedIndex ) {
-            ponderatedIndex = maxPonderatedIndex;
-        }
-        var table;
-        if( combatRatio <= 0 ) {
-            table = combatTable.tableBelowOrEqualToEnemy;
-            // flip the sign to select the right column
-            ponderatedIndex = - ponderatedIndex;
-        } else {
-            table = combatTable.tableAboveEnemy;
-        }
-        return table[randomTableValue][ponderatedIndex];
-        */
-
+    getCombatTableResult(combatRatio: number, randomTableValue: number): number[] {
         let ponderatedIndex = combatRatio / 2.0;
-        let table;
+        let table: CombatTable;
         if ( combatRatio <= 0 ) {
             table = combatTable.tableBelowOrEqualToEnemy;
             ponderatedIndex = - ponderatedIndex;

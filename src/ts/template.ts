@@ -1,4 +1,10 @@
-import { routing, state, Item, translations, randomTable, mechanicsEngine, App, DebugMode, Color } from ".";
+import { App, DebugMode } from "./app";
+import { mechanicsEngine } from "./controller/mechanics/mechanicsEngine";
+import { Item } from "./model/item";
+import { randomTable } from "./model/randomTable";
+import { routing } from "./routing";
+import { Color, state } from "./state";
+import { translations } from "./views/viewsUtils/translations";
 
 /**
  * The HTML template API
@@ -79,7 +85,7 @@ export const template = {
     /**
      * Update player statistics
      */
-    updateStatistics(doNotAnimate: boolean = false) {
+    updateStatistics(doNotAnimate = false) {
 
         // Update statistics
         if ( !state.actionChart ||
@@ -118,8 +124,8 @@ export const template = {
      * Show an HTML view
      * @param {DOM} viewContent The view to show
      */
-    setViewContent(viewContent: any) {
-        $("#body").html(viewContent);
+    setViewContent(viewContent: unknown) {
+        $("#body").html(<string>viewContent);
         // Scroll to top
         window.scrollTo(0, 0);
         template.highlightActiveLink();
@@ -244,7 +250,7 @@ export const template = {
             html += "<tr>";
             for (let column = 0; column < 10; column++) {
                 const num = numbers[ row * 10 + column ];
-                html += '<td data-number="' + num + '">' + num + "</td>";
+                html += '<td data-number="' + num.toString() + '">' + num.toString() + "</td>";
             }
             html += "</tr>";
         }
@@ -258,7 +264,7 @@ export const template = {
 
         $("#template-randomtable").on('hidden.bs.modal', (e) => {
             e.preventDefault();
-            randomTable.randomTableClosed();
+            void randomTable.randomTableClosed();
         });
     },
 

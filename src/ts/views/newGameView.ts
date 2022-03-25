@@ -1,4 +1,7 @@
-import { projectAon, translations, newGameController, state } from "..";
+import { newGameController } from "../controller/newGameController";
+import { projectAon } from "../model/projectAon";
+import { state } from "../state";
+import { translations } from "./viewsUtils/translations";
 
 /**
  * The new game view API
@@ -11,9 +14,7 @@ export const newGameView = {
         let html = "";
         for ( let i = 1; i <= projectAon.supportedBooks.length; i++) {
             const title = projectAon.getBookTitle( i )
-            html += '<option value="' + i + '" >' +
-                i + ". " +
-                title + "</option>";
+            html += `<option value="${i}" >${i}. ${title}</option>`;
         }
         $("#newgame-book").html(html);
 
@@ -24,12 +25,12 @@ export const newGameView = {
                 alert(translations.text("youMustAgree"));
                 return;
             }
-            newGameController.startNewGame(<number> $("#newgame-book").val());
+            newGameController.getInstance().startNewGame(<number> $("#newgame-book").val());
         });
 
         // Book change
         $("#newgame-book").on("change", () => {
-            newGameController.selectedBookChanged(<number> $("#newgame-book").val());
+            newGameController.getInstance().selectedBookChanged(<number> $("#newgame-book").val());
         });
         
         // Random table change
@@ -39,7 +40,7 @@ export const newGameView = {
         });
 
         // Set the first book as selected:
-        newGameController.selectedBookChanged(1);
+        newGameController.getInstance().selectedBookChanged(1);
     },
 
     /**

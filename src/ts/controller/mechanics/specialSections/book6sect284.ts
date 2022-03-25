@@ -1,4 +1,9 @@
-import { numberPickerMechanics, state, randomTable, actionChartController, translations, mechanicsEngine } from "../../..";
+import { randomTable } from "../../../model/randomTable";
+import { state } from "../../../state";
+import { translations } from "../../../views/viewsUtils/translations";
+import { actionChartController } from "../../actionChartController";
+import { mechanicsEngine } from "../mechanicsEngine";
+import { numberPickerMechanics } from "../numberPickerMechanics";
 
 /** Bet */
 export const book6sect284 = {
@@ -18,7 +23,7 @@ export const book6sect284 = {
     },
 
     getBetsState(): number[][] {
-        let betsState = state.sectionStates.otherStates.book6sect284;
+        let betsState = <number[][]> state.sectionStates.otherStates.book6sect284;
         if ( ! betsState ) {
             betsState = [];
         }
@@ -37,7 +42,7 @@ export const book6sect284 = {
 
         const betsState  = book6sect284.getBetsState();
 
-        const newBet: number[] = [];
+        const newBet = new Array<number>();
         // Money amount
         newBet.push( numberPickerMechanics.getNumberPickerValue() );
         // First number
@@ -52,7 +57,7 @@ export const book6sect284 = {
         } else {
             moneyWon = -newBet[0];
         }
-        actionChartController.increaseMoney( moneyWon );
+        actionChartController.getInstance().increaseMoney( moneyWon );
 
         betsState.push( newBet );
         book6sect284.setBetsState( betsState );
@@ -65,8 +70,8 @@ export const book6sect284 = {
         $betsPlaceholder.empty();
         let html = "";
         for ( const bet of book6sect284.getBetsState() ) {
-            html += translations.text( "number" , [1] ) + ": " + bet[1] +
-            ", " + translations.text( "number" , [2] ) + ": " + bet[2] + " + 3 = " + ( bet[2] + 3 ) + "<br/>";
+            html += translations.text( "number" , [1] ) + ": " + bet[1].toString() +
+            ", " + translations.text( "number" , [2] ) + ": " + bet[2].toString() + " + 3 = " + ( bet[2] + 3 ).toString() + "<br/>";
         }
         $betsPlaceholder.html( html );
     },

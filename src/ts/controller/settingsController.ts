@@ -1,24 +1,45 @@
-import { setupController, translations, views, settingsView, state, template, mechanicsEngine, Color } from "..";
+import { Color, state } from "../state";
+import { template } from "../template";
+import { views } from "../views";
+import { settingsView } from "../views/settingsView";
+import { translations } from "../views/viewsUtils/translations";
+import { mechanicsEngine } from "./mechanics/mechanicsEngine";
+import { setupController } from "./setupController";
+import { saveAs } from 'file-saver';
+import { Controller } from "./controllerFactory";
 
 /**
  * Game settings controller
  */
-export const settingsController = {
+export class settingsController implements Controller {
 
-    index() {
+    private static instance: settingsController;
 
-        if ( !setupController.checkBook() ) {
+    private constructor() {
+        // Set constructor private
+    }
+
+    onLeave() {
+        // Do Nothing
+    }
+
+    public static getInstance(): settingsController {
+        if(!this.instance) {
+            this.instance = new this()
+        }
+        return this.instance;
+    }
+
+    async index() {
+        if ( !setupController.getInstance().checkBook() ) {
             return;
         }
 
         document.title = translations.text("settings");
 
-        views.loadView("settings.html")
-        .then(() => {
-            settingsView.setup();
-        });
-
-    },
+        await views.loadView("settings.html");
+        settingsView.setup();
+    }
 
     /**
      * Change the current color theme
@@ -27,32 +48,32 @@ export const settingsController = {
     changeColorTheme(color: Color): void {
         template.changeColorTheme( color );
         state.updateColorTheme( color );
-    },
+    }
 
     /**
      * Show the save game dialog
      */
     saveGameDialog() {
         $("#settings-saveDialog").modal("show");
-    },
+    }
 
     /** Return a string to put on saved games files */
     getDateForFileNames(): string {
         const now = new Date();
-        return now.getFullYear() + "_" +
+        return now.getFullYear().toString() + "_" +
             ( now.getMonth() + 1 ).toString().padStart( 2 , "0" ) + "_" +
             now.getDate().toString().padStart( 2 , "0" ) + "_" +
             now.getHours().toString().padStart( 2 , "0" ) + "_" +
             now.getMinutes().toString().padStart( 2 , "0" ) + "_" +
             now.getSeconds().toString().padStart( 2 , "0" );
-    },
+    }
 
     /**
      * Return a default save game file name
      */
     defaultSaveGameName() {
-        return settingsController.getDateForFileNames() + "-book-" + state.book.bookNumber + "-savegame.json";
-    },
+        return this.getDateForFileNames() + "-book-" + state.book.bookNumber.toString() + "-savegame.json";
+    }
 
     /**
      * Save the current game
@@ -66,7 +87,7 @@ export const settingsController = {
             // Check file name
             fileName = fileName.trim();
             if ( !fileName ) {
-                fileName = settingsController.defaultSaveGameName();
+                fileName = this.defaultSaveGameName();
             }
             if ( !fileName.toLowerCase().endsWith(".json") ) {
                 fileName += ".json";
@@ -78,6 +99,7 @@ export const settingsController = {
                 return false;
             }
 
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             saveAs(blob, fileName);
             return true;
         } catch (e) {
@@ -86,9 +108,9 @@ export const settingsController = {
                 "Try a newer browser version. Error: " + e);
             return false;
         }
-    },
+    }
 
     /** Return page */
     getBackController() { return "game"; }
 
-};
+}

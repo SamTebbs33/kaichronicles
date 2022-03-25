@@ -1,16 +1,34 @@
-import { setupController, Section, state, views, mapView, mechanicsEngine } from "..";
+import { Section } from "../model/section";
+import { state } from "../state";
+import { views } from "../views";
+import { mapView } from "../views/mapView";
+import { Controller } from "./controllerFactory";
+import { mechanicsEngine } from "./mechanics/mechanicsEngine";
+import { setupController } from "./setupController";
 
 /**
  * The map controller
  */
-export const mapController = {
+export class mapController implements Controller {
+
+    private static instance: mapController;
+
+    private constructor() {
+        // Set constructor private
+    }
+
+    public static getInstance(): mapController {
+        if(!this.instance) {
+            this.instance = new this()
+        }
+        return this.instance;
+    }
 
     /**
      * Render the map
      */
-    index() {
-
-        if ( !setupController.checkBook() ) {
+    async index() {
+        if ( !setupController.getInstance().checkBook() ) {
             return;
         }
 
@@ -20,27 +38,24 @@ export const mapController = {
             return;
         }
 
-        views.loadView("map.html")
-        .then(() => {
-            if ( state.book.bookNumber === 11 ) {
-                // Special case
-                mapView.setMapBook11();
-            } else {
-                mapView.setSectionContent( mapSection );
-            }
-            mapView.bindEvents();
-        });
-
-    },
+        await views.loadView("map.html");
+        if ( state.book.bookNumber === 11 ) {
+            // Special case
+            mapView.setMapBook11();
+        } else {
+            mapView.setSectionContent( mapSection );
+        }
+        mapView.bindEvents();
+    }
 
     /**
      * On leave controller
      */
     onLeave() {
         mapView.unbindEvents();
-    },
+    }
 
     /** Return page */
     getBackController() { return "game"; }
 
-};
+}
